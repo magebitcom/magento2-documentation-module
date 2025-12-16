@@ -2,7 +2,7 @@
     "name": "magebit/module-documentation",
     "description": "Module documentation viewer for Magento 2 admin",
     "type": "magento2-module",
-    "license": "proprietary",
+    "license": "MIT",
     "require": {
         "php": "^8.1",
         "magento/framework": "*",
