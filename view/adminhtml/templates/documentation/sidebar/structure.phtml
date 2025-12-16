@@ -1,0 +1,47 @@
+<?php
+/**
+ * @var \Magento\Backend\Block\Template $block
+ * @var \Magebit\Documentation\ViewModel\Sidebar $viewModel
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$viewModel = $block->getData('sidebar_view_model');
+$structure = $block->getData('structure') ?? ['files' => [], 'categories' => []];
+$module = $block->getData('module') ?? '';
+$feature = $block->getData('feature') ?? '';
+$prefix = $block->getData('prefix') ?? '';
+?>
+
+<?php if (!empty($structure['files'])): ?>
+    <ul class="doc-files">
+        <?php foreach ($structure['files'] as $file): ?>
+            <?php $filePath = $prefix . $file; ?>
+            <?php $displayName = $viewModel->formatFileName($file); ?>
+            <li data-search-file="<?= $escaper->escapeHtmlAttr(strtolower($displayName)) ?>">
+                <a href="<?= $escaper->escapeUrl($viewModel->getDocUrl($module, $feature, $filePath)) ?>"
+                   class="<?= $viewModel->isActive($module, $feature, $filePath) ? 'active' : '' ?>">
+                    <?= $escaper->escapeHtml($displayName) ?>
+                </a>
+            </li>
+        <?php endforeach; ?>
+    </ul>
+<?php endif; ?>
+
+<?php foreach ($structure['categories'] as $categoryName => $categoryStructure): ?>
+    <div class="doc-category" data-search-category="<?= $escaper->escapeHtmlAttr(strtolower($categoryName)) ?>">
+        <div class="doc-category-header collapsed" data-collapse-toggle>
+            <span class="collapse-icon"></span>
+            <span class="doc-category-name"><?= $escaper->escapeHtml($categoryName) ?></span>
+        </div>
+        <div class="doc-category-content collapsible-content">
+            <?= $block->getLayout()
+                ->createBlock(\Magento\Backend\Block\Template::class)
+                ->setTemplate('Magebit_Documentation::documentation/sidebar/structure.phtml')
+                ->setData('structure', $categoryStructure)
+                ->setData('module', $module)
+                ->setData('feature', $feature)
+                ->setData('prefix', $prefix . $categoryName . '/')
+                ->setData('sidebar_view_model', $viewModel)
+                ->toHtml() ?>
+        </div>
+    </div>
+<?php endforeach; ?>

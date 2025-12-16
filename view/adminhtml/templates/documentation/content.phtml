@@ -1,0 +1,10 @@
+<?php
+/**
+ * @var \Magento\Backend\Block\Template $block
+ * @var \Magebit\Documentation\ViewModel\Content $viewModel
+ */
+$viewModel = $block->getData('view_model');
+?>
+<div class="documentation-content">
+    <?= /* @noEscape */ $viewModel->getRenderedContent() ?>
+</div>

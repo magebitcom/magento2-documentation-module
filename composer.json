@@ -1,0 +1,19 @@
+{
+    "name": "magebit/module-documentation",
+    "description": "Module documentation viewer for Magento 2 admin",
+    "type": "magento2-module",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.1",
+        "magento/framework": "*",
+        "league/commonmark": "^2.0"
+    },
+    "autoload": {
+        "files": [
+            "registration.php"
+        ],
+        "psr-4": {
+            "Magebit\\Documentation\\": ""
+        }
+    }
+}

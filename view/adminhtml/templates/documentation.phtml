@@ -1,0 +1,26 @@
+<?php
+/**
+ * @var \Magento\Backend\Block\Template $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+$searchUrl = $block->getUrl('magebit_documentation/search/index');
+?>
+<div class="documentation-container" id="documentation-container">
+    <?= $block->getChildHtml('sidebar') ?>
+    <?= $block->getChildHtml('content') ?>
+</div>
+
+<script type="text/x-magento-init">
+{
+    "#documentation-container": {
+        "documentationTree": {}
+    },
+    ".documentation-sidebar": {
+        "documentationSearch": {
+            "searchUrl": "<?= $escaper->escapeJs($searchUrl) ?>",
+            "minQueryLength": 2,
+            "debounceDelay": 300
+        }
+    }
+}
+</script>

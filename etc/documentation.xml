@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magebit_Documentation:etc/documentation.xsd">
+    <module name="Magebit_Documentation" title="Documentation" sortOrder="9000" icon="Magebit_Documentation::images/icon.svg">
+        <documentation name="How to use" path="Docs" sortOrder="10"/>
+    </module>
+</config>
