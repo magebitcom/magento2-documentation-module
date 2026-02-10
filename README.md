@@ -1,43 +1,21 @@
 # Magebit Documentation Module
 
-A Magento 2 module that provides a centralized documentation viewer in the admin panel. View, search, and navigate module documentation with ease.
-
-## Features
-
-- 📚 **Centralized Documentation** - Access all module documentation in one place (`System → Documentation`)
-- 🔍 **Full-Text Search** - Quickly find what you need with instant search
-- 📝 **Markdown Support** - Write documentation in Markdown with GitHub Flavored Markdown support
-- 🗂️ **Hierarchical Navigation** - Organize docs by modules, features, and categories
-- 🔒 **ACL Protection** - Control access to sensitive documentation with Magento ACL
-- 🎨 **Custom Icons** - Add module-specific icons for better visual organization
-- ⚡ **Fast & Responsive** - Modern, clean interface built for productivity
+A Magento 2 module that provides a centralized documentation viewer in the admin panel. View, search, and navigate module documentation.
 
 ## Installation
 
-### Via Composer (Recommended)
+### Via Composer
 
 ```bash
-composer require magebit/module-documentation
+composer require magebitcom/module-documentation
 bin/magento module:enable Magebit_Documentation
 bin/magento setup:upgrade
-bin/magento cache:flush
 ```
-
-### Manual Installation
-
-1. Download the module and extract to `app/code/Magebit/Documentation`
-2. Enable the module:
-   ```bash
-   bin/magento module:enable Magebit_Documentation
-   bin/magento setup:upgrade
-   bin/magento cache:flush
-   ```
 
 ## Requirements
 
 - PHP 8.1 or higher
 - Magento 2.4+
-- Composer package: `league/commonmark` (^2.0)
 
 ## Quick Start
 
@@ -283,32 +261,3 @@ Grant access to documentation in **System → Permissions → User Roles**:
 1. Verify icon path in `documentation.xml`
 2. Check that SVG file exists at the specified location
 3. Clear static content: `bin/magento setup:static-content:deploy`
-
-## Contributing
-
-Contributions are welcome! Please follow these guidelines:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-This module is licensed under the MIT License. See [LICENSE](LICENSE) for details.
-
-## Support
-
-For issues, questions, or feature requests:
-
-- **GitHub Issues**: [Create an issue](https://github.com/magebit/magento2-documentation/issues)
-- **Email**: info@magebit.com
-- **Website**: https://magebit.com
-
-## Credits
-
-Developed by [Magebit](https://magebit.com) - Magento Development Agency
-
----
-
-**Made with ❤️ by Magebit**
