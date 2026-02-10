@@ -18,7 +18,7 @@ $prefix = $block->getData('prefix') ?? '';
             <?php $displayName = $viewModel->formatFileName($file); ?>
             <li data-search-file="<?= $escaper->escapeHtmlAttr(strtolower($displayName)) ?>">
                 <a href="<?= $escaper->escapeUrl($viewModel->getDocUrl($module, $feature, $filePath)) ?>"
-                   class="<?= $viewModel->isActive($module, $feature, $filePath) ? 'active' : '' ?>">
+                    class="<?= $viewModel->isActive($module, $feature, $filePath) ? 'active' : '' ?>">
                     <?= $escaper->escapeHtml($displayName) ?>
                 </a>
             </li>
