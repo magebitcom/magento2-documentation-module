@@ -1,5 +1,5 @@
 {
-    "name": "magebit/module-documentation",
+    "name": "magebitcom/module-documentation",
     "description": "Module documentation viewer for Magento 2 admin",
     "type": "magento2-module",
     "license": "MIT",
