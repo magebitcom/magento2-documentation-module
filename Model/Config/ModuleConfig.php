@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace Magebit\Documentation\Model\Config;
 
+use Magebit\Documentation\Model\Config\Source\HighlightTheme;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 
 /**
@@ -27,13 +28,18 @@ class ModuleConfig
 
     /**
      * @param ScopeConfigInterface $scopeConfig
+     * @param HighlightTheme $themes
      */
-    public function __construct(private readonly ScopeConfigInterface $scopeConfig)
-    {
+    public function __construct(
+        private readonly ScopeConfigInterface $scopeConfig,
+        private readonly HighlightTheme $themes
+    ) {
     }
 
     /**
-     * Name of the shipped theme stylesheet, without the extension.
+     * Light theme stylesheet to load, without the extension.
+     *
+     * A theme that no longer ships is ignored, so an upgrade cannot leave a link to a missing file.
      *
      * @return string
      */
@@ -41,7 +47,19 @@ class ModuleConfig
     {
         $theme = $this->getTrimmedValue(self::XML_PATH_HIGHLIGHT_THEME);
 
-        return $theme === '' ? self::DEFAULT_HIGHLIGHT_THEME : $theme;
+        return in_array($theme, $this->themes->getSelectableNames(), true)
+            ? $theme
+            : self::DEFAULT_HIGHLIGHT_THEME;
+    }
+
+    /**
+     * Theme to use while the browser asks for a dark colour scheme, when one ships for the selection.
+     *
+     * @return string|null
+     */
+    public function getDarkHighlightTheme(): ?string
+    {
+        return $this->themes->getDarkVariant($this->getHighlightTheme());
     }
 
     /**

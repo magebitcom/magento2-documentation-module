@@ -25,6 +25,16 @@ class HighlightLanguageTest extends TestCase
     private string $root;
 
     /**
+     * @var string
+     */
+    private string $languageDirectory;
+
+    /**
+     * @var File
+     */
+    private File $fileDriver;
+
+    /**
      * @var ComponentRegistrarInterface&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
@@ -33,8 +43,10 @@ class HighlightLanguageTest extends TestCase
     protected function setUp(): void
     {
         $this->root = (string)realpath(sys_get_temp_dir()) . '/magedoc-language-' . uniqid('', true);
+        $this->languageDirectory = $this->root . '/view/adminhtml/web/js/vendor/highlight/languages';
+        $this->fileDriver = new File();
 
-        mkdir($this->root . '/view/adminhtml/web/js/vendor/highlight/languages', 0777, true);
+        $this->fileDriver->createDirectory($this->languageDirectory);
 
         $this->registrar = $this->createMock(ComponentRegistrarInterface::class);
         $this->registrar->method('getPath')
@@ -44,8 +56,9 @@ class HighlightLanguageTest extends TestCase
 
     protected function tearDown(): void
     {
-        // phpcs:ignore Magento2.Security.InsecureFunction
-        exec('rm -rf ' . escapeshellarg($this->root));
+        if ($this->fileDriver->isExists($this->root)) {
+            $this->fileDriver->deleteDirectory($this->root);
+        }
     }
 
     public function testListsEveryShippedLanguageFileInAlphabeticalOrder(): void
@@ -72,10 +85,22 @@ class HighlightLanguageTest extends TestCase
         );
     }
 
+    public function testKeepsDarkSoundingNamesBecauseOnlyThemesPairUp(): void
+    {
+        $this->shipLanguages(['nginx.min.js', 'x-dark.min.js']);
+
+        $this->assertSame(
+            [
+                ['value' => 'nginx', 'label' => 'Nginx'],
+                ['value' => 'x-dark', 'label' => 'X Dark'],
+            ],
+            $this->createSource()->toOptionArray()
+        );
+    }
+
     public function testReturnsNoOptionsWhenTheDirectoryIsMissing(): void
     {
-        // phpcs:ignore Magento2.Security.InsecureFunction
-        exec('rm -rf ' . escapeshellarg($this->root . '/view'));
+        $this->fileDriver->deleteDirectory($this->root . '/view');
 
         $this->assertSame([], $this->createSource()->toOptionArray());
     }
@@ -87,8 +112,8 @@ class HighlightLanguageTest extends TestCase
     private function shipLanguages(array $fileNames): void
     {
         foreach ($fileNames as $fileName) {
-            file_put_contents(
-                $this->root . '/view/adminhtml/web/js/vendor/highlight/languages/' . $fileName,
+            $this->fileDriver->filePutContents(
+                $this->languageDirectory . '/' . $fileName,
                 'hljs.registerLanguage();'
             );
         }
@@ -99,6 +124,6 @@ class HighlightLanguageTest extends TestCase
      */
     private function createSource(): HighlightLanguage
     {
-        return new HighlightLanguage($this->registrar, new File());
+        return new HighlightLanguage($this->registrar, $this->fileDriver);
     }
 }

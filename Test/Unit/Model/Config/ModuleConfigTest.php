@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Magebit\Documentation\Test\Unit\Model\Config;
 
 use Magebit\Documentation\Model\Config\ModuleConfig;
+use Magebit\Documentation\Model\Config\Source\HighlightTheme;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -24,6 +25,12 @@ class ModuleConfigTest extends TestCase
     private ScopeConfigInterface&MockObject $scopeConfig;
 
     /**
+     * @var HighlightTheme&MockObject
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
+    private HighlightTheme&MockObject $themes;
+
+    /**
      * @var ModuleConfig
      */
     private ModuleConfig $config;
@@ -31,7 +38,10 @@ class ModuleConfigTest extends TestCase
     protected function setUp(): void
     {
         $this->scopeConfig = $this->createMock(ScopeConfigInterface::class);
-        $this->config = new ModuleConfig($this->scopeConfig);
+        $this->themes = $this->createMock(HighlightTheme::class);
+        $this->themes->method('getSelectableNames')->willReturn(['default', 'github']);
+
+        $this->config = new ModuleConfig($this->scopeConfig, $this->themes);
     }
 
     public function testHighlightThemeComesFromTheAppearanceGroup(): void
@@ -39,13 +49,13 @@ class ModuleConfigTest extends TestCase
         $this->scopeConfig->expects($this->once())
             ->method('getValue')
             ->with('magebit_documentation/appearance/highlight_theme')
-            ->willReturn('github-dark');
+            ->willReturn('default');
 
-        $this->assertSame('github-dark', $this->config->getHighlightTheme());
+        $this->assertSame('default', $this->config->getHighlightTheme());
     }
 
     /**
-     * @dataProvider blankThemeProvider
+     * @dataProvider unusableThemeProvider
      * @param mixed $stored
      */
     public function testHighlightThemeFallsBackToGithub(mixed $stored): void
@@ -58,13 +68,37 @@ class ModuleConfigTest extends TestCase
     /**
      * @return array<string, array{mixed}>
      */
-    public static function blankThemeProvider(): array
+    public static function unusableThemeProvider(): array
     {
         return [
             'never saved' => [null],
             'empty string' => [''],
             'only spaces' => ['   '],
+            'theme no longer ships' => ['monokai'],
+            'dark variant is not a light theme' => ['github-dark'],
         ];
+    }
+
+    public function testDarkThemeIsTheCompanionOfTheSelectedTheme(): void
+    {
+        $this->scopeConfig->method('getValue')->willReturn('github');
+        $this->themes->expects($this->once())
+            ->method('getDarkVariant')
+            ->with('github')
+            ->willReturn('github-dark');
+
+        $this->assertSame('github-dark', $this->config->getDarkHighlightTheme());
+    }
+
+    public function testDarkThemeIsNullWhenNoCompanionShips(): void
+    {
+        $this->scopeConfig->method('getValue')->willReturn('default');
+        $this->themes->expects($this->once())
+            ->method('getDarkVariant')
+            ->with('default')
+            ->willReturn(null);
+
+        $this->assertNull($this->config->getDarkHighlightTheme());
     }
 
     /**
@@ -106,9 +140,7 @@ class ModuleConfigTest extends TestCase
     {
         $this->scopeConfig->method('getValue')->willReturn(' nginx , ,twig ,nginx');
 
-        $languages = $this->config->getExtraLanguages();
-
-        $this->assertSame(['nginx', 'twig'], $languages);
+        $this->assertSame(['nginx', 'twig'], $this->config->getExtraLanguages());
     }
 
     /**

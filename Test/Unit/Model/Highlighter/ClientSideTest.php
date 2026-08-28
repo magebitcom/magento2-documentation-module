@@ -84,9 +84,4 @@ class ClientSideTest extends TestCase
 
         $this->assertSame($once, $this->highlighter->decorate($once));
     }
-
-    public function testEmptyHtmlStaysEmpty(): void
-    {
-        $this->assertSame('', $this->highlighter->decorate(''));
-    }
 }

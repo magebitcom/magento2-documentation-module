@@ -24,6 +24,11 @@ abstract class ShippedFiles implements OptionSourceInterface
     private const MODULE_NAME = 'Magebit_Documentation';
 
     /**
+     * @var list<string>|null
+     */
+    private ?array $names = null;
+
+    /**
      * @param ComponentRegistrarInterface $componentRegistrar
      * @param FileDriver $fileDriver
      */
@@ -48,7 +53,7 @@ abstract class ShippedFiles implements OptionSourceInterface
     abstract protected function getSuffix(): string;
 
     /**
-     * One option per shipped file, in alphabetical order.
+     * One option per selectable file, in alphabetical order.
      *
      * @return array<int, array{value: string, label: string}>
      */
@@ -56,7 +61,7 @@ abstract class ShippedFiles implements OptionSourceInterface
     {
         $options = [];
 
-        foreach ($this->getNames() as $name) {
+        foreach ($this->getSelectableNames() as $name) {
             $options[] = ['value' => $name, 'label' => $this->toLabel($name)];
         }
 
@@ -64,11 +69,46 @@ abstract class ShippedFiles implements OptionSourceInterface
     }
 
     /**
-     * File names in the shipped directory, with the suffix cut off.
+     * Every shipped file name, with the suffix cut off.
      *
      * @return list<string>
      */
-    private function getNames(): array
+    public function getNames(): array
+    {
+        if ($this->names === null) {
+            $this->names = $this->readNames();
+        }
+
+        return $this->names;
+    }
+
+    /**
+     * The shipped names an admin may pick from.
+     *
+     * @return list<string>
+     */
+    public function getSelectableNames(): array
+    {
+        return array_values(array_filter($this->getNames(), fn (string $name): bool => $this->isSelectable($name)));
+    }
+
+    /**
+     * Whether a shipped file is offered as a choice of its own.
+     *
+     * @param string $name
+     * @return bool
+     */
+    protected function isSelectable(string $name): bool
+    {
+        return true;
+    }
+
+    /**
+     * Read the shipped directory once.
+     *
+     * @return list<string>
+     */
+    private function readNames(): array
     {
         $modulePath = $this->componentRegistrar->getPath(ComponentRegistrar::MODULE, self::MODULE_NAME);
 
@@ -77,41 +117,32 @@ abstract class ShippedFiles implements OptionSourceInterface
         }
 
         $directory = rtrim($modulePath, '/') . '/' . $this->getDirectory();
-
-        // An install that trimmed the shipped files simply offers no options.
-        try {
-            $paths = $this->fileDriver->readDirectory($directory);
-        } catch (FileSystemException $e) {
-            return [];
-        }
-
         $suffix = $this->getSuffix();
         $names = [];
 
-        foreach ($paths as $path) {
-            $fileName = $this->fileName((string)$path);
+        // An install that trimmed the shipped files simply offers no options.
+        try {
+            foreach ($this->fileDriver->readDirectory($directory) as $path) {
+                // phpcs:ignore Magento2.Functions.DiscouragedFunction
+                $fileName = basename((string)$path);
 
-            if (strlen($fileName) > strlen($suffix) && str_ends_with($fileName, $suffix)) {
+                if (strlen($fileName) <= strlen($suffix) || !str_ends_with($fileName, $suffix)) {
+                    continue;
+                }
+
+                if ($this->fileDriver->isDirectory((string)$path)) {
+                    continue;
+                }
+
                 $names[] = substr($fileName, 0, -strlen($suffix));
             }
+        } catch (FileSystemException $e) {
+            return [];
         }
 
         sort($names);
 
         return $names;
-    }
-
-    /**
-     * Take the bare file name off the end of a path.
-     *
-     * @param string $path
-     * @return string
-     */
-    private function fileName(string $path): string
-    {
-        $separator = strrpos($path, DIRECTORY_SEPARATOR);
-
-        return $separator === false ? $path : substr($path, $separator + 1);
     }
 
     /**

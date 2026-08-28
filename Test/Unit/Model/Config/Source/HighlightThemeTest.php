@@ -25,6 +25,16 @@ class HighlightThemeTest extends TestCase
     private string $root;
 
     /**
+     * @var string
+     */
+    private string $themeDirectory;
+
+    /**
+     * @var File
+     */
+    private File $fileDriver;
+
+    /**
      * @var ComponentRegistrarInterface&MockObject
      */
     // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
@@ -33,8 +43,10 @@ class HighlightThemeTest extends TestCase
     protected function setUp(): void
     {
         $this->root = (string)realpath(sys_get_temp_dir()) . '/magedoc-theme-' . uniqid('', true);
+        $this->themeDirectory = $this->root . '/view/adminhtml/web/css/highlight';
+        $this->fileDriver = new File();
 
-        mkdir($this->root . '/view/adminhtml/web/css/highlight', 0777, true);
+        $this->fileDriver->createDirectory($this->themeDirectory);
 
         $this->registrar = $this->createMock(ComponentRegistrarInterface::class);
         $this->registrar->method('getPath')
@@ -44,28 +56,63 @@ class HighlightThemeTest extends TestCase
 
     protected function tearDown(): void
     {
-        // phpcs:ignore Magento2.Security.InsecureFunction
-        exec('rm -rf ' . escapeshellarg($this->root));
+        if ($this->fileDriver->isExists($this->root)) {
+            $this->fileDriver->deleteDirectory($this->root);
+        }
     }
 
-    public function testListsEveryShippedThemeInAlphabeticalOrder(): void
+    public function testListsEveryShippedLightThemeInAlphabeticalOrder(): void
     {
-        $this->shipThemes(['github.css', 'github-dark.css', 'default.css']);
+        $this->shipThemes(['github.css', 'default.css', 'nord.css']);
 
         $this->assertSame(
             [
                 ['value' => 'default', 'label' => 'Default'],
                 ['value' => 'github', 'label' => 'Github'],
-                ['value' => 'github-dark', 'label' => 'Github Dark'],
+                ['value' => 'nord', 'label' => 'Nord'],
             ],
             $this->createSource()->toOptionArray()
         );
     }
 
+    public function testDoesNotOfferDarkVariantsAsAChoice(): void
+    {
+        $this->shipThemes(['github.css', 'github-dark.css']);
+
+        $this->assertSame(
+            [['value' => 'github', 'label' => 'Github']],
+            $this->createSource()->toOptionArray()
+        );
+    }
+
+    public function testKnowsTheDarkCompanionOfAShippedTheme(): void
+    {
+        $this->shipThemes(['github.css', 'github-dark.css', 'default.css']);
+
+        $this->assertSame('github-dark', $this->createSource()->getDarkVariant('github'));
+    }
+
+    public function testHasNoDarkCompanionWhenTheFileIsNotShipped(): void
+    {
+        $this->shipThemes(['github.css', 'github-dark.css', 'default.css']);
+
+        $this->assertNull($this->createSource()->getDarkVariant('default'));
+    }
+
     public function testIgnoresFilesThatAreNotStylesheets(): void
     {
         $this->shipThemes(['github.css', 'README.md', 'notes.txt']);
-        mkdir($this->root . '/view/adminhtml/web/css/highlight/extra');
+
+        $this->assertSame(
+            [['value' => 'github', 'label' => 'Github']],
+            $this->createSource()->toOptionArray()
+        );
+    }
+
+    public function testIgnoresDirectoriesNamedLikeAStylesheet(): void
+    {
+        $this->shipThemes(['github.css']);
+        $this->fileDriver->createDirectory($this->themeDirectory . '/leftover.css');
 
         $this->assertSame(
             [['value' => 'github', 'label' => 'Github']],
@@ -75,8 +122,7 @@ class HighlightThemeTest extends TestCase
 
     public function testReturnsNoOptionsWhenTheDirectoryIsMissing(): void
     {
-        // phpcs:ignore Magento2.Security.InsecureFunction
-        exec('rm -rf ' . escapeshellarg($this->root . '/view'));
+        $this->fileDriver->deleteDirectory($this->root . '/view');
 
         $this->assertSame([], $this->createSource()->toOptionArray());
     }
@@ -86,7 +132,7 @@ class HighlightThemeTest extends TestCase
         $registrar = $this->createMock(ComponentRegistrarInterface::class);
         $registrar->method('getPath')->willReturn(null);
 
-        $this->assertSame([], (new HighlightTheme($registrar, new File()))->toOptionArray());
+        $this->assertSame([], (new HighlightTheme($registrar, $this->fileDriver))->toOptionArray());
     }
 
     /**
@@ -96,7 +142,7 @@ class HighlightThemeTest extends TestCase
     private function shipThemes(array $fileNames): void
     {
         foreach ($fileNames as $fileName) {
-            file_put_contents($this->root . '/view/adminhtml/web/css/highlight/' . $fileName, '.hljs{}');
+            $this->fileDriver->filePutContents($this->themeDirectory . '/' . $fileName, '.hljs{}');
         }
     }
 
@@ -105,6 +151,6 @@ class HighlightThemeTest extends TestCase
      */
     private function createSource(): HighlightTheme
     {
-        return new HighlightTheme($this->registrar, new File());
+        return new HighlightTheme($this->registrar, $this->fileDriver);
     }
 }
