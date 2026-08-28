@@ -120,7 +120,7 @@ class ConverterTest extends TestCase
         $this->assertSame(['Manual'], array_column($result['Vendor_B']['sections'], 'name'));
     }
 
-    public function testLaterDeclarationsOverrideIconAndSortOrderButKeepTheFirstTitle(): void
+    public function testLaterDeclarationsOverrideTitleIconAndSortOrder(): void
     {
         $result = $this->converter->convert($this->dom(
             '<module name="Vendor_A" title="First" sortOrder="10" icon="Vendor_A::images/first.svg"/>'
@@ -128,7 +128,7 @@ class ConverterTest extends TestCase
             . '<module name="Vendor_A"/>'
         ));
 
-        $this->assertSame('First', $result['Vendor_A']['title']);
+        $this->assertSame('Second', $result['Vendor_A']['title']);
         $this->assertSame(20, $result['Vendor_A']['sortOrder']);
         $this->assertSame('Vendor_A::images/second.svg', $result['Vendor_A']['icon']);
     }
@@ -167,13 +167,58 @@ class ConverterTest extends TestCase
     {
         $result = $this->converter->convert($this->dom(
             '<module name=""><documentation name="Guide" path="Docs"/></module>'
+            . '<other name="Vendor_X"><documentation name="Guide" path="Docs"/></other>'
             . '<module name="Vendor_A"><documentation name="" path="Docs"/>'
-            . '<documentation name="Guide" path=""/></module>'
+            . '<documentation name="Guide" path=""/><changelog path=""/>'
+            . '<other name="Guide" path="Docs"/></module>'
         ));
 
         $this->assertArrayNotHasKey('', $result);
+        $this->assertArrayNotHasKey('Vendor_X', $result);
         $this->assertSame(['Vendor_A'], array_keys($result));
         $this->assertSame([], $result['Vendor_A']['sections']);
+    }
+
+    public function testSectionsKeepTheirDocumentOrder(): void
+    {
+        $result = $this->converter->convert($this->dom(
+            '<module name="Vendor_A">
+                <changelog path="CHANGELOG.md"/>
+                <documentation name="Guide" path="Docs"/>
+             </module>'
+        ));
+
+        $this->assertSame(['Changelog', 'Guide'], array_column($result['Vendor_A']['sections'], 'name'));
+    }
+
+    public function testDocumentOrderDecidesANameCollisionBetweenAChangelogAndADocumentation(): void
+    {
+        $result = $this->converter->convert($this->dom(
+            '<module name="Vendor_A">
+                <changelog path="CHANGELOG.md"/>
+                <documentation name="Changelog" path="Docs/Changelog"/>
+             </module>'
+        ));
+
+        $this->assertCount(1, $result['Vendor_A']['sections']);
+        $this->assertSame('Docs/Changelog', $result['Vendor_A']['sections'][0]['path']);
+        $this->assertFalse($result['Vendor_A']['sections'][0]['isChangelog']);
+    }
+
+    public function testTreatsAZeroAttributeValueAsPresent(): void
+    {
+        $result = $this->converter->convert($this->dom(
+            '<module name="Vendor_A" title="0" icon="0">'
+            . '<documentation name="Guide" path="Docs" acl="0"/>'
+            . '<changelog name="0" path="CHANGELOG.md" acl="0"/>'
+            . '</module>'
+        ));
+
+        $this->assertSame('0', $result['Vendor_A']['title']);
+        $this->assertSame('0', $result['Vendor_A']['icon']);
+        $this->assertSame('0', $result['Vendor_A']['sections'][0]['acl']);
+        $this->assertSame('0', $result['Vendor_A']['sections'][1]['name']);
+        $this->assertSame('0', $result['Vendor_A']['sections'][1]['acl']);
     }
 
     /**

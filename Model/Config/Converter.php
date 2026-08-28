@@ -26,6 +26,8 @@ class Converter implements ConverterInterface
 
     private const CHANGELOG_SORT_ORDER = 1000;
 
+    private const CHANGELOG_NAME = 'Changelog';
+
     /**
      * Convert documentation.xml into a flat module map.
      *
@@ -35,9 +37,14 @@ class Converter implements ConverterInterface
     public function convert($source): array
     {
         $result = [];
+        $root = $source->documentElement;
 
-        foreach ($source->getElementsByTagName('module') as $moduleNode) {
-            if (!$moduleNode instanceof DOMElement) {
+        if ($root === null) {
+            return $result;
+        }
+
+        foreach ($root->childNodes as $moduleNode) {
+            if (!$moduleNode instanceof DOMElement || $moduleNode->nodeName !== 'module') {
                 continue;
             }
 
@@ -64,7 +71,9 @@ class Converter implements ConverterInterface
     }
 
     /**
-     * Take the first title, but let a later declaration replace the sort order and icon.
+     * Let a later declaration replace the title, sort order and icon whenever it sets them.
+     *
+     * Magento's config merge normally collapses duplicate module nodes first; this safety net keeps its rule.
      *
      * @param DocModule $module
      * @param DOMElement $node
@@ -72,23 +81,26 @@ class Converter implements ConverterInterface
      */
     private function applyMetadata(array $module, DOMElement $node): array
     {
-        if ($module['title'] === '' && $node->getAttribute('title') !== '') {
-            $module['title'] = $node->getAttribute('title');
+        $title = $this->optionalAttribute($node, 'title');
+        if ($title !== null) {
+            $module['title'] = $title;
         }
 
-        if ($node->getAttribute('sortOrder') !== '') {
-            $module['sortOrder'] = (int) $node->getAttribute('sortOrder');
+        $sortOrder = $this->optionalAttribute($node, 'sortOrder');
+        if ($sortOrder !== null) {
+            $module['sortOrder'] = (int) $sortOrder;
         }
 
-        if ($node->getAttribute('icon') !== '') {
-            $module['icon'] = $node->getAttribute('icon');
+        $icon = $this->optionalAttribute($node, 'icon');
+        if ($icon !== null) {
+            $module['icon'] = $icon;
         }
 
         return $module;
     }
 
     /**
-     * Read every documentation and changelog entry declared by one module node.
+     * Read the documentation and changelog entries of one module node, keeping their document order.
      *
      * @param DOMElement $moduleNode
      * @return list<DocSection>
@@ -97,51 +109,84 @@ class Converter implements ConverterInterface
     {
         $sections = [];
 
-        foreach ($moduleNode->getElementsByTagName('documentation') as $node) {
+        foreach ($moduleNode->childNodes as $node) {
             if (!$node instanceof DOMElement) {
                 continue;
             }
 
-            $name = $node->getAttribute('name');
-            $path = $node->getAttribute('path');
+            $section = match ($node->nodeName) {
+                'documentation' => $this->readDocumentation($node),
+                'changelog' => $this->readChangelog($node),
+                default => null,
+            };
 
-            if ($name === '' || $path === '') {
-                continue;
+            if ($section !== null) {
+                $sections[] = $section;
             }
-
-            $sections[] = [
-                'name' => $name,
-                'path' => $path,
-                'acl' => $node->getAttribute('acl') ?: null,
-                'sortOrder' => $node->getAttribute('sortOrder') !== ''
-                    ? (int) $node->getAttribute('sortOrder')
-                    : self::DEFAULT_SORT_ORDER,
-                'isChangelog' => false,
-            ];
-        }
-
-        foreach ($moduleNode->getElementsByTagName('changelog') as $node) {
-            if (!$node instanceof DOMElement) {
-                continue;
-            }
-
-            $path = $node->getAttribute('path');
-            if ($path === '') {
-                continue;
-            }
-
-            $sections[] = [
-                'name' => $node->getAttribute('name') ?: 'Changelog',
-                'path' => $path,
-                'acl' => $node->getAttribute('acl') ?: null,
-                'sortOrder' => $node->getAttribute('sortOrder') !== ''
-                    ? (int) $node->getAttribute('sortOrder')
-                    : self::CHANGELOG_SORT_ORDER,
-                'isChangelog' => true,
-            ];
         }
 
         return $sections;
+    }
+
+    /**
+     * Build a section from one documentation node, or nothing when it lacks a name or a path.
+     *
+     * @param DOMElement $node
+     * @return DocSection|null
+     */
+    private function readDocumentation(DOMElement $node): ?array
+    {
+        $name = $node->getAttribute('name');
+        $path = $node->getAttribute('path');
+
+        if ($name === '' || $path === '') {
+            return null;
+        }
+
+        return [
+            'name' => $name,
+            'path' => $path,
+            'acl' => $this->optionalAttribute($node, 'acl'),
+            'sortOrder' => (int) ($this->optionalAttribute($node, 'sortOrder') ?? self::DEFAULT_SORT_ORDER),
+            'isChangelog' => false,
+        ];
+    }
+
+    /**
+     * Build a section from one changelog node, or nothing when it lacks a path.
+     *
+     * @param DOMElement $node
+     * @return DocSection|null
+     */
+    private function readChangelog(DOMElement $node): ?array
+    {
+        $path = $node->getAttribute('path');
+
+        if ($path === '') {
+            return null;
+        }
+
+        return [
+            'name' => $this->optionalAttribute($node, 'name') ?? self::CHANGELOG_NAME,
+            'path' => $path,
+            'acl' => $this->optionalAttribute($node, 'acl'),
+            'sortOrder' => (int) ($this->optionalAttribute($node, 'sortOrder') ?? self::CHANGELOG_SORT_ORDER),
+            'isChangelog' => true,
+        ];
+    }
+
+    /**
+     * Read an attribute, treating only a missing or empty value as absent.
+     *
+     * @param DOMElement $node
+     * @param string $name
+     * @return string|null
+     */
+    private function optionalAttribute(DOMElement $node, string $name): ?string
+    {
+        $value = $node->getAttribute($name);
+
+        return $value !== '' ? $value : null;
     }
 
     /**
