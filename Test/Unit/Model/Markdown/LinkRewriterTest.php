@@ -16,6 +16,7 @@ use Magebit\Documentation\Model\Markdown\Renderer;
 use Magebit\Documentation\Model\Markdown\UrlBuilder;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 class LinkRewriterTest extends TestCase
 {
@@ -36,7 +37,8 @@ class LinkRewriterTest extends TestCase
 
         $this->renderer = new Renderer(
             new EnvironmentFactory(['gfm' => new GithubFlavoredMarkdownExtension()], []),
-            new LinkRewriter($urlBuilder)
+            new LinkRewriter($urlBuilder),
+            $this->createMock(LoggerInterface::class)
         );
     }
 
@@ -97,7 +99,8 @@ class LinkRewriterTest extends TestCase
         $urlBuilder->method('page')->willReturn('/admin/doc?module=Vendor_A&section=Guide&path=other.md');
         $renderer = new Renderer(
             new EnvironmentFactory(['gfm' => new GithubFlavoredMarkdownExtension()], []),
-            new LinkRewriter($urlBuilder)
+            new LinkRewriter($urlBuilder),
+            $this->createMock(LoggerInterface::class)
         );
 
         $html = $renderer->render('[x](other.md)', [
@@ -168,16 +171,93 @@ class LinkRewriterTest extends TestCase
         $this->assertStringContainsString('src="https://cdn.example/logo.png"', $html);
     }
 
+    public function testKeepsTheFragmentOnRewrittenMarkdownLinks(): void
+    {
+        $html = $this->render('[x](../intro.md#installation)');
+
+        $this->assertStringContainsString('href="/admin/doc/Vendor_A/Guide/intro.md#installation"', $html);
+    }
+
+    public function testKeepsQueryStringsOutOfTheResolvedImagePath(): void
+    {
+        $html = $this->render('![alt](diagram.png?v=2)');
+
+        $this->assertStringContainsString('src="/admin/asset/Vendor_A/Guide/advanced/diagram.png"', $html);
+        $this->assertStringNotContainsString('v=2', $html);
+    }
+
+    public function testKeepsTheFragmentOnRewrittenImages(): void
+    {
+        $html = $this->render('![alt](icons.svg#gear)');
+
+        $this->assertStringContainsString('src="/admin/asset/Vendor_A/Guide/advanced/icons.svg#gear"', $html);
+    }
+
+    public function testAQueryStringContainingASlashDoesNotBecomePathSegments(): void
+    {
+        $html = $this->render('[x](other.md?a=b/c)');
+
+        $this->assertStringContainsString('href="/admin/doc/Vendor_A/Guide/advanced/other.md"', $html);
+        $this->assertStringNotContainsString('b/c', $html);
+    }
+
+    public function testDecodesPercentEncodedFileNames(): void
+    {
+        $renderer = $this->rendererExpectingPagePath('advanced/my file.md');
+
+        $renderer->render('[x](my%20file.md)', $this->context());
+    }
+
+    public function testEncodedParentSegmentsCannotClimbOutOfTheSection(): void
+    {
+        $renderer = $this->rendererExpectingPagePath('secret.md');
+
+        $renderer->render('[x](%2e%2e%2f%2e%2e%2fsecret.md)', $this->context());
+    }
+
+    public function testLeavesAnchorAndSchemeUrlsAloneOnImagesToo(): void
+    {
+        $html = $this->render("![a](#top)\n\n![b](tel:+37100000000)");
+
+        $this->assertStringContainsString('src="#top"', $html);
+        $this->assertStringContainsString('src="tel:+37100000000"', $html);
+    }
+
+    /**
+     * A renderer whose UrlBuilder asserts the exact path the rewriter resolved.
+     *
+     * @param string $expectedPath
+     * @return Renderer
+     */
+    private function rendererExpectingPagePath(string $expectedPath): Renderer
+    {
+        $urlBuilder = $this->createMock(UrlBuilder::class);
+        $urlBuilder->expects($this->once())
+            ->method('page')
+            ->with('Vendor_A', 'Guide', $expectedPath)
+            ->willReturn('/resolved');
+
+        return new Renderer(
+            new EnvironmentFactory(['gfm' => new GithubFlavoredMarkdownExtension()], []),
+            new LinkRewriter($urlBuilder),
+            $this->createMock(LoggerInterface::class)
+        );
+    }
+
+    /**
+     * @return array{module:string,section:string,path:string}
+     */
+    private function context(): array
+    {
+        return ['module' => 'Vendor_A', 'section' => 'Guide', 'path' => 'advanced/page.md'];
+    }
+
     /**
      * @param string $markdown
      * @return string
      */
     private function render(string $markdown): string
     {
-        return $this->renderer->render($markdown, [
-            'module' => 'Vendor_A',
-            'section' => 'Guide',
-            'path' => 'advanced/page.md',
-        ]);
+        return $this->renderer->render($markdown, $this->context());
     }
 }

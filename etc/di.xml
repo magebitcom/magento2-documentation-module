@@ -60,10 +60,4 @@
             </argument>
         </arguments>
     </type>
-
-    <type name="Magebit\Documentation\Model\Markdown\Renderer">
-        <arguments>
-            <argument name="logger" xsi:type="object">Psr\Log\LoggerInterface</argument>
-        </arguments>
-    </type>
 </config>

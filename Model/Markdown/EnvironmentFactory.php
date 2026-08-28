@@ -21,6 +21,7 @@ class EnvironmentFactory
 {
     /**
      * Safe defaults, so an environment is never less strict than this even when nothing is configured.
+     * etc/di.xml deliberately repeats the first three so integrators can see and override them.
      *
      * @var array<string,mixed>
      */
@@ -66,7 +67,8 @@ class EnvironmentFactory
     /**
      * Defaults plus the configured overrides, with the nesting limit made an int again.
      *
-     * DI turns a number in di.xml into a string, and the CommonMark config rejects that.
+     * A di.xml argument has no integer type, so a number reaches PHP as a string, which the
+     * CommonMark config refuses.
      *
      * @return array<string,mixed>
      */

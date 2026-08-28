@@ -70,16 +70,28 @@ class RendererTest extends TestCase
 
     public function testStripsRawHtmlWithoutRelyingOnAnyExtension(): void
     {
-        $html = $this->renderer([])->render('<div>raw</div>', $this->context('page.md'));
+        $html = $this->renderer([])->render("<div>raw</div>\n\nkept text", $this->context('page.md'));
 
         $this->assertStringNotContainsString('<div>', $html);
+        $this->assertStringContainsString('<p>kept text</p>', $html);
     }
 
     public function testDropsUnsafeLinkSchemes(): void
     {
-        $html = $this->renderer([])->render('[x](javascript:alert(1))', $this->context('page.md'));
+        $html = $this->renderer([])->render('[label](javascript:alert(1))', $this->context('page.md'));
 
         $this->assertStringNotContainsString('javascript:', $html);
+        $this->assertStringContainsString('>label</a>', $html);
+    }
+
+    public function testContainsFailuresThatAreNotCommonMarkExceptions(): void
+    {
+        $urlBuilder = $this->createMock(UrlBuilder::class);
+        $urlBuilder->method('page')->willThrowException(new \RuntimeException('no url'));
+        $this->logger->expects($this->once())->method('error');
+        $renderer = new Renderer(new EnvironmentFactory([], []), new LinkRewriter($urlBuilder), $this->logger);
+
+        $this->assertSame('', $renderer->render('[x](other.md)', $this->context('page.md')));
     }
 
     public function testLetsTheInjectedConfigOverrideTheDefaults(): void

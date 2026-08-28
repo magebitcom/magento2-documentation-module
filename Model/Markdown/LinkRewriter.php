@@ -52,17 +52,65 @@ class LinkRewriter
                 continue;
             }
 
-            $resolved = $this->normalize($currentDir . $url);
+            [$path, $fragment] = $this->splitPath($url);
+            $resolved = $this->resolve($currentDir, $path);
 
             if ($node instanceof Image) {
-                $node->setUrl($this->urlBuilder->asset($context['module'], $context['section'], $resolved));
+                $node->setUrl(
+                    $this->urlBuilder->asset($context['module'], $context['section'], $resolved) . $fragment
+                );
                 continue;
             }
 
-            if (str_ends_with(strtolower($url), '.md')) {
-                $node->setUrl($this->urlBuilder->page($context['module'], $context['section'], $resolved));
+            if (str_ends_with(strtolower($path), '.md')) {
+                $node->setUrl(
+                    $this->urlBuilder->page($context['module'], $context['section'], $resolved) . $fragment
+                );
             }
         }
+    }
+
+    /**
+     * Split a URL into the file path and the "#..." that follows it.
+     *
+     * The query is dropped: the URL we build carries its own, and an author parameter named
+     * "path" would otherwise override the one we just resolved.
+     *
+     * @param string $url
+     * @return array{string, string}
+     */
+    private function splitPath(string $url): array
+    {
+        $fragment = '';
+
+        $hashAt = strpos($url, '#');
+        if ($hashAt !== false) {
+            $fragment = substr($url, $hashAt);
+            $url = substr($url, 0, $hashAt);
+        }
+
+        $queryAt = strpos($url, '?');
+        if ($queryAt !== false) {
+            $url = substr($url, 0, $queryAt);
+        }
+
+        return [$url, $fragment];
+    }
+
+    /**
+     * Turn a link into the path of the file it points at, decoding each segment first.
+     *
+     * Normalising last is what keeps an encoded "%2e%2e%2f" from climbing out of the section.
+     *
+     * @param string $currentDir
+     * @param string $path
+     * @return string
+     */
+    private function resolve(string $currentDir, string $path): string
+    {
+        $decoded = array_map('rawurldecode', explode('/', $currentDir . $path));
+
+        return $this->normalize(implode('/', $decoded));
     }
 
     /**

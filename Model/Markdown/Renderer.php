@@ -11,7 +11,6 @@ declare(strict_types=1);
 namespace Magebit\Documentation\Model\Markdown;
 
 use League\CommonMark\Event\DocumentParsedEvent;
-use League\CommonMark\Exception\CommonMarkException;
 use League\CommonMark\MarkdownConverter;
 use Magebit\Documentation\Api\MarkdownRendererInterface;
 use Psr\Log\LoggerInterface;
@@ -22,19 +21,20 @@ use Psr\Log\LoggerInterface;
 class Renderer implements MarkdownRendererInterface
 {
     /**
-     * Runs below the external-link processor, so that processor still sees the original URLs.
+     * Below the external-link processor at -50, so that one still sees the original URLs,
+     * and clear of the heading-permalink processor at -100.
      */
-    private const REWRITE_PRIORITY = -100;
+    private const REWRITE_PRIORITY = -75;
 
     /**
      * @param EnvironmentFactory $environmentFactory
      * @param LinkRewriter $linkRewriter
-     * @param LoggerInterface|null $logger
+     * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly EnvironmentFactory $environmentFactory,
         private readonly LinkRewriter $linkRewriter,
-        private readonly ?LoggerInterface $logger = null
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -52,12 +52,14 @@ class Renderer implements MarkdownRendererInterface
             self::REWRITE_PRIORITY
         );
 
+        // Everything is caught: bad markdown, a misconfigured environment and URL generation
+        // all run inside convert(), and one bad page must not take the admin down.
         try {
             return (new MarkdownConverter($environment))->convert($markdown)->getContent();
-        } catch (CommonMarkException $e) {
-            $this->logger?->error(
+        } catch (\Throwable $e) {
+            $this->logger->error(
                 'Magebit_Documentation could not render a documentation page.',
-                ['context' => $context, 'exception' => $e->getMessage()]
+                ['context' => $context, 'exception' => $e]
             );
 
             return '';
