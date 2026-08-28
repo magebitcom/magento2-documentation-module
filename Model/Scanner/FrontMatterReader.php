@@ -27,6 +27,11 @@ class FrontMatterReader
     private const MAX_BYTES = 8192;
 
     /**
+     * Windows editors put this in front of the first line, where it would hide the delimiter.
+     */
+    private const BYTE_ORDER_MARK = "\xEF\xBB\xBF";
+
+    /**
      * @param FileDriver $fileDriver
      * @param Parser $yamlParser
      * @param LoggerInterface $logger
@@ -80,10 +85,15 @@ class FrontMatterReader
      */
     private function readHead(string $absolutePath): ?string
     {
+        $resource = null;
+
         try {
             $resource = $this->fileDriver->fileOpen($absolutePath, 'r');
             $head = $this->fileDriver->fileRead($resource, self::MAX_BYTES);
-            $this->fileDriver->fileClose($resource);
+
+            return str_starts_with($head, self::BYTE_ORDER_MARK)
+                ? substr($head, strlen(self::BYTE_ORDER_MARK))
+                : $head;
         } catch (FileSystemException $e) {
             $this->logger->warning(
                 'Magebit_Documentation could not read a documentation page.',
@@ -91,9 +101,31 @@ class FrontMatterReader
             );
 
             return null;
+        } finally {
+            $this->close($resource);
+        }
+    }
+
+    /**
+     * Close a handle that was opened, whether the read worked or not.
+     *
+     * @param resource|null $resource
+     * @return void
+     */
+    private function close($resource): void
+    {
+        if ($resource === null) {
+            return;
         }
 
-        return $head;
+        try {
+            $this->fileDriver->fileClose($resource);
+        } catch (FileSystemException $e) {
+            $this->logger->warning(
+                'Magebit_Documentation could not close a documentation page.',
+                ['exception' => $e->getMessage()]
+            );
+        }
     }
 
     /**

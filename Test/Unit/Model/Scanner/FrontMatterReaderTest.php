@@ -11,10 +11,13 @@ declare(strict_types=1);
 namespace Magebit\Documentation\Test\Unit\Model\Scanner;
 
 use Magebit\Documentation\Model\Scanner\FrontMatterReader;
+use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Filesystem\Driver\File;
+use Magento\Framework\Phrase;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use Symfony\Component\Yaml\Parser;
 
 class FrontMatterReaderTest extends TestCase
@@ -60,6 +63,15 @@ class FrontMatterReaderTest extends TestCase
     public function testReadsABlockDelimitedWithWindowsLineEndings(): void
     {
         $path = $this->write('windows.md', "---\r\ntitle: Custom Title\r\n---\r\n# Body\r\n");
+
+        $this->assertSame(['title' => 'Custom Title'], $this->reader->read($path));
+    }
+
+    public function testReadsABlockBehindAByteOrderMark(): void
+    {
+        $this->logger->expects($this->never())->method('warning');
+
+        $path = $this->write('bom.md', "\xEF\xBB\xBF---\ntitle: Custom Title\n---\n# Body\n");
 
         $this->assertSame(['title' => 'Custom Title'], $this->reader->read($path));
     }
@@ -132,6 +144,30 @@ class FrontMatterReaderTest extends TestCase
             );
 
         $this->assertSame([], $this->reader->read($missing));
+    }
+
+    public function testClosesTheHandleWhenTheReadFails(): void
+    {
+        // phpcs:ignore Magento2.Functions.DiscouragedFunction
+        $handle = fopen('php://memory', 'r+');
+
+        if ($handle === false) {
+            throw new RuntimeException('Could not open an in-memory stream.');
+        }
+
+        $path = $this->write('unreadable.md', "---\ntitle: Never Reached\n---\n");
+
+        $driver = $this->createMock(File::class);
+        $driver->method('fileOpen')->with($path, 'r')->willReturn($handle);
+        $driver->method('fileRead')->willThrowException(new FileSystemException(new Phrase('read failed')));
+        $driver->expects($this->once())->method('fileClose')->with($handle);
+
+        $reader = new FrontMatterReader($driver, new Parser(), $this->logger);
+
+        $this->assertSame([], $reader->read($path));
+
+        // phpcs:ignore Magento2.Functions.DiscouragedFunction
+        fclose($handle);
     }
 
     /**
