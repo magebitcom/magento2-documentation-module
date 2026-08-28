@@ -12,6 +12,8 @@
                 type="Magebit\Documentation\Model\PageRepository"/>
     <preference for="Magebit\Documentation\Api\MarkdownRendererInterface"
                 type="Magebit\Documentation\Model\Markdown\Renderer"/>
+    <preference for="Magebit\Documentation\Api\SyntaxHighlighterInterface"
+                type="Magebit\Documentation\Model\Highlighter\ClientSide"/>
 
     <virtualType name="Magebit\Documentation\Model\Config\SchemaLocator"
                  type="Magento\Framework\Config\GenericSchemaLocator">

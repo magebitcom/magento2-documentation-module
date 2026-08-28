@@ -1,0 +1,46 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <tab id="magebit" translate="label" sortOrder="400">
+            <label>Magebit</label>
+        </tab>
+        <section id="magebit_documentation" translate="label" type="text" sortOrder="510"
+                 showInDefault="1" showInWebsite="0" showInStore="0">
+            <class>separator-top</class>
+            <label>Documentation</label>
+            <tab>magebit</tab>
+            <resource>Magebit_Documentation::documentation</resource>
+            <group id="appearance" translate="label" type="text" sortOrder="10"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Appearance</label>
+                <field id="highlight_theme" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Syntax Theme</label>
+                    <source_model>Magebit\Documentation\Model\Config\Source\HighlightTheme</source_model>
+                    <comment><![CDATA[Theme used for code blocks. This picks the light theme; when a matching
+                    dark variant ships with it, that one is used while the browser asks for a dark colour
+                    scheme.]]></comment>
+                </field>
+                <field id="extra_languages" translate="label comment" type="multiselect" sortOrder="20"
+                       showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Extra Languages</label>
+                    <source_model>Magebit\Documentation\Model\Config\Source\HighlightLanguage</source_model>
+                    <comment><![CDATA[Language files loaded on every documentation page on top of the ones
+                    highlight.js already carries. Leave this empty unless code blocks use a language name the
+                    file names do not match.]]></comment>
+                </field>
+            </group>
+            <group id="search" translate="label" type="text" sortOrder="20"
+                   showInDefault="1" showInWebsite="0" showInStore="0">
+                <label>Search</label>
+                <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                       showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
+                    <label>Enable Search</label>
+                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    <comment>Show the search box above the documentation tree.</comment>
+                </field>
+            </group>
+        </section>
+    </system>
+</config>
