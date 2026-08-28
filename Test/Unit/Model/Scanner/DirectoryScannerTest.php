@@ -48,6 +48,11 @@ class DirectoryScannerTest extends TestCase
     private string $brokenFrontMatterRoot;
 
     /**
+     * @var string
+     */
+    private string $unusableFrontMatterRoot;
+
+    /**
      * @var DirectoryScanner
      */
     private DirectoryScanner $scanner;
@@ -60,6 +65,7 @@ class DirectoryScannerTest extends TestCase
         $this->deepRoot = $this->root . '-deep';
         $this->frontMatterRoot = $this->root . '-front-matter';
         $this->brokenFrontMatterRoot = $this->root . '-broken-front-matter';
+        $this->unusableFrontMatterRoot = $this->root . '-unusable-front-matter';
 
         mkdir($this->root . '/2-advanced', 0777, true);
         mkdir($this->root . '/1-basics', 0777, true);
@@ -102,6 +108,11 @@ class DirectoryScannerTest extends TestCase
         mkdir($this->brokenFrontMatterRoot, 0777, true);
         file_put_contents($this->brokenFrontMatterRoot . '/2-broken.md', "---\ntitle: \"unclosed\n---\n# Broken");
 
+        // Valid YAML, but neither value has a type the page can use.
+        mkdir($this->unusableFrontMatterRoot, 0777, true);
+        file_put_contents($this->unusableFrontMatterRoot . '/1-bad-order.md', "---\norder: \"5\"\n---\n# Bad Order");
+        file_put_contents($this->unusableFrontMatterRoot . '/2-bad-title.md', "---\ntitle: [a, b]\n---\n# Bad Title");
+
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->never())->method('warning');
 
@@ -121,6 +132,7 @@ class DirectoryScannerTest extends TestCase
         $driver->deleteDirectory($this->deepRoot);
         $driver->deleteDirectory($this->frontMatterRoot);
         $driver->deleteDirectory($this->brokenFrontMatterRoot);
+        $driver->deleteDirectory($this->unusableFrontMatterRoot);
     }
 
     public function testOrdersIndexFirstThenByNumericPrefix(): void
@@ -289,5 +301,39 @@ class DirectoryScannerTest extends TestCase
 
         $this->assertSame('Broken', $page->getTitle());
         $this->assertSame(2, $page->getSortOrder());
+    }
+
+    public function testUnusableFrontMatterValuesFallBackAndWarnTheAuthor(): void
+    {
+        $keys = [];
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->exactly(2))
+            ->method('warning')
+            ->willReturnCallback(function (mixed $message, array $context) use (&$keys): void {
+                $this->assertIsString($message);
+                $this->assertStringContainsString('ignored an unusable front matter value', $message);
+                $this->assertArrayHasKey('path', $context);
+                $keys[] = $context['key'];
+            });
+
+        $scanner = new DirectoryScanner(
+            new File(),
+            new FileNameParser(),
+            new FrontMatterReader(new File(), new Parser(), $logger),
+            $logger
+        );
+
+        $pages = $scanner->scan($this->unusableFrontMatterRoot)->getPages();
+        sort($keys);
+
+        $this->assertSame(['order', 'title'], $keys);
+        $this->assertSame(
+            ['Bad Order', 'Bad Title'],
+            array_map(static fn (PageInterface $page): string => $page->getTitle(), $pages)
+        );
+        $this->assertSame(
+            [1, 2],
+            array_map(static fn (PageInterface $page): int => $page->getSortOrder(), $pages)
+        );
     }
 }

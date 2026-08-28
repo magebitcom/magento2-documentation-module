@@ -120,8 +120,8 @@ class DirectoryScanner implements DirectoryScannerInterface
             $pages[] = new Page(
                 $relativePrefix . $name,
                 $name,
-                $this->title($frontMatter, $parsed['label']),
-                $this->sortOrder($frontMatter, $parsed['sortOrder']),
+                $this->title($frontMatter, $parsed['label'], $entry),
+                $this->sortOrder($frontMatter, $parsed['sortOrder'], $entry),
                 $parsed['isIndex']
             );
         }
@@ -134,13 +134,24 @@ class DirectoryScanner implements DirectoryScannerInterface
      *
      * @param array<string,mixed> $frontMatter
      * @param string $fallback
+     * @param string $absolutePath
      * @return string
      */
-    private function title(array $frontMatter, string $fallback): string
+    private function title(array $frontMatter, string $fallback, string $absolutePath): string
     {
-        $title = $frontMatter['title'] ?? null;
+        if (!array_key_exists('title', $frontMatter)) {
+            return $fallback;
+        }
 
-        return is_string($title) && trim($title) !== '' ? trim($title) : $fallback;
+        $title = $frontMatter['title'];
+
+        if (is_string($title) && trim($title) !== '') {
+            return trim($title);
+        }
+
+        $this->warnUnusable('title', $absolutePath);
+
+        return $fallback;
     }
 
     /**
@@ -148,13 +159,39 @@ class DirectoryScanner implements DirectoryScannerInterface
      *
      * @param array<string,mixed> $frontMatter
      * @param int $fallback
+     * @param string $absolutePath
      * @return int
      */
-    private function sortOrder(array $frontMatter, int $fallback): int
+    private function sortOrder(array $frontMatter, int $fallback, string $absolutePath): int
     {
-        $sortOrder = $frontMatter['order'] ?? null;
+        if (!array_key_exists('order', $frontMatter)) {
+            return $fallback;
+        }
 
-        return is_int($sortOrder) ? $sortOrder : $fallback;
+        $sortOrder = $frontMatter['order'];
+
+        if (is_int($sortOrder)) {
+            return $sortOrder;
+        }
+
+        $this->warnUnusable('order', $absolutePath);
+
+        return $fallback;
+    }
+
+    /**
+     * Tell the author a front matter value was skipped, naming the key and the file.
+     *
+     * @param string $key
+     * @param string $absolutePath
+     * @return void
+     */
+    private function warnUnusable(string $key, string $absolutePath): void
+    {
+        $this->logger->warning(
+            'Magebit_Documentation ignored an unusable front matter value of a documentation page.',
+            ['path' => $absolutePath, 'key' => $key]
+        );
     }
 
     /**
