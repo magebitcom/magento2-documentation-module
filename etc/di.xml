@@ -8,6 +8,8 @@
                 type="Magebit\Documentation\Model\Scanner\DirectoryScanner"/>
     <preference for="Magebit\Documentation\Api\DocumentationTreeInterface"
                 type="Magebit\Documentation\Model\DocumentationTree"/>
+    <preference for="Magebit\Documentation\Api\PageRepositoryInterface"
+                type="Magebit\Documentation\Model\PageRepository"/>
 
     <virtualType name="Magebit\Documentation\Model\Config\SchemaLocator"
                  type="Magento\Framework\Config\GenericSchemaLocator">
