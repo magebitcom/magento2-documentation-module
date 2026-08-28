@@ -123,8 +123,7 @@ abstract class ShippedFiles implements OptionSourceInterface
         // An install that trimmed the shipped files simply offers no options.
         try {
             foreach ($this->fileDriver->readDirectory($directory) as $path) {
-                // phpcs:ignore Magento2.Functions.DiscouragedFunction
-                $fileName = basename((string)$path);
+                $fileName = $this->fileName((string)$path);
 
                 if (strlen($fileName) <= strlen($suffix) || !str_ends_with($fileName, $suffix)) {
                     continue;
@@ -143,6 +142,21 @@ abstract class ShippedFiles implements OptionSourceInterface
         sort($names);
 
         return $names;
+    }
+
+    /**
+     * Cut the leading directories off a path the driver returned.
+     *
+     * The driver always hands back "/"-separated paths, whatever the platform.
+     *
+     * @param string $path
+     * @return string
+     */
+    private function fileName(string $path): string
+    {
+        $separator = strrpos($path, '/');
+
+        return $separator === false ? $path : substr($path, $separator + 1);
     }
 
     /**
