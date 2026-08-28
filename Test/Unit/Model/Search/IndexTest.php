@@ -23,6 +23,7 @@ use Magento\Framework\App\Cache\Type\Config as ConfigCacheType;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 
 /**
  * @phpstan-import-type SearchRecord from Indexer
@@ -45,6 +46,11 @@ class IndexTest extends TestCase
     private DocumentationTreeInterface $tree;
 
     /**
+     * @var LoggerInterface&MockObject
+     */
+    private LoggerInterface $logger;
+
+    /**
      * @var Index
      */
     private Index $index;
@@ -64,6 +70,7 @@ class IndexTest extends TestCase
         $this->indexer = $this->createMock(Indexer::class);
         $this->cache = $this->createMock(CacheType::class);
         $this->tree = $this->createMock(DocumentationTreeInterface::class);
+        $this->logger = $this->createMock(LoggerInterface::class);
 
         $this->cache->method('load')->willReturnCallback(fn (): string|false => $this->cached ?? false);
         $this->tree->method('getSection')->willReturnCallback(
@@ -74,7 +81,14 @@ class IndexTest extends TestCase
             ) ? null : $this->section($section)
         );
 
-        $this->index = new Index($this->indexer, $this->cache, new Json(), $this->tree, new Snippet());
+        $this->index = new Index(
+            $this->indexer,
+            $this->cache,
+            new Json(),
+            $this->tree,
+            new Snippet(),
+            $this->logger
+        );
     }
 
     public function testRanksTitleMatchesAboveBodyMatches(): void
@@ -188,6 +202,35 @@ class IndexTest extends TestCase
         $this->assertSame('Public Page', $hits[0]->getTitle());
     }
 
+    public function testFallsBackToTwentyResultsWhenNoLimitIsGiven(): void
+    {
+        $records = [];
+        for ($i = 0; $i < 25; $i++) {
+            $records[] = $this->record('Vendor_A', 'Guide', "p{$i}.md", "Page {$i}", '', 'invoice');
+        }
+        $this->indexer->method('build')->willReturn($records);
+
+        $this->assertCount(20, $this->index->search('invoice'));
+    }
+
+    public function testReturnsNothingWhenTheIndexHoldsNoPages(): void
+    {
+        $this->assertSame([], $this->search('invoice', []));
+    }
+
+    public function testScoresTheSameWhetherTheBodyKeptItsEmphasisMarkers(): void
+    {
+        $withMarkers = $this->search('invoice', [
+            $this->record('Vendor_A', 'Guide', 'a.md', 'Setup', '', 'the **invoice** total'),
+        ]);
+        $withoutMarkers = $this->search('invoice', [
+            $this->record('Vendor_A', 'Guide', 'a.md', 'Setup', '', 'the invoice total'),
+        ]);
+
+        $this->assertSame(10, $withMarkers[0]->getScore());
+        $this->assertSame($withMarkers[0]->getScore(), $withoutMarkers[0]->getScore());
+    }
+
     public function testReturnsNothingWhenNothingMatches(): void
     {
         $this->assertSame([], $this->search('zzz', [
@@ -255,6 +298,7 @@ class IndexTest extends TestCase
     public function testRebuildsWhenTheCachedPayloadIsNotReadable(): void
     {
         $this->cached = 'not json at all';
+        $this->logger->expects($this->once())->method('warning');
 
         $hits = $this->search('invoice', [
             $this->record('Vendor_A', 'Guide', 'a.md', 'Rebuilt Page', '', 'invoice'),

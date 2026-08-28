@@ -18,6 +18,7 @@ use Magebit\Documentation\Model\Cache\Type as CacheType;
 use Magebit\Documentation\Model\Data\SearchHit;
 use Magento\Framework\App\Cache\Type\Config as ConfigCacheType;
 use Magento\Framework\Serialize\SerializerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Scores the cached index on every query and hides sections the current admin may not see.
@@ -51,13 +52,15 @@ class Index implements SearchIndexInterface
      * @param SerializerInterface $serializer
      * @param DocumentationTreeInterface $tree
      * @param Snippet $snippet
+     * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly Indexer $indexer,
         private readonly CacheType $cache,
         private readonly SerializerInterface $serializer,
         private readonly DocumentationTreeInterface $tree,
-        private readonly Snippet $snippet
+        private readonly Snippet $snippet,
+        private readonly LoggerInterface $logger
     ) {
     }
 
@@ -185,6 +188,11 @@ class Index implements SearchIndexInterface
         try {
             $data = $this->serializer->unserialize($cached);
         } catch (InvalidArgumentException $e) {
+            $this->logger->warning(
+                'Magebit_Documentation could not read the cached documentation search index.',
+                ['exception' => $e->getMessage()]
+            );
+
             return null;
         }
 

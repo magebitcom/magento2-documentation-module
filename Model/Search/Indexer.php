@@ -39,12 +39,22 @@ class Indexer
      * Markdown that carries no searchable words, in the order it has to be removed.
      */
     private const NOISE_PATTERNS = [
+        '/\A\x{FEFF}?---\r?\n.*?\r?\n---[ \t]*(?:\r?\n|\z)/su' => ' ',
         '/```.*?```/s' => ' ',
         '/~~~.*?~~~/s' => ' ',
         '/`[^`]*`/' => ' ',
         '/!\[[^\]]*\]\([^)]*\)/' => ' ',
         '/\[([^\]]*)\]\([^)]*\)/' => '$1',
         '~<?\bhttps?://[^\s>]*>?~i' => ' ',
+    ];
+
+    /**
+     * Emphasis markers, taken off the body so a snippet reads as prose.
+     * Underscores stay, because module and method names are full of them.
+     */
+    private const EMPHASIS_PATTERNS = [
+        '/\*+/' => '',
+        '/~~/' => '',
     ];
 
     /**
@@ -125,43 +135,57 @@ class Indexer
             $page->getRelativePath()
         ) ?? '';
 
+        $cleaned = $this->replace($content, self::NOISE_PATTERNS);
+
         return [
             'module' => $module->getModuleName(),
             'moduleTitle' => $module->getTitle(),
             'section' => $section->getName(),
             'path' => $page->getRelativePath(),
             'title' => $page->getTitle(),
-            'headings' => $this->headings($content),
-            'body' => $this->body($content),
+            'headings' => $this->headings($cleaned),
+            'body' => $this->body($cleaned),
         ];
     }
 
     /**
      * The text of every markdown heading, one per line.
      *
-     * @param string $content
+     * @param string $cleaned Page text the noise patterns already ran over
      * @return string
      */
-    private function headings(string $content): string
+    private function headings(string $cleaned): string
     {
-        preg_match_all('/^#{1,6}\s+(.+)$/m', $content, $matches);
+        preg_match_all('/^#{1,6}\s+(.+)$/m', $cleaned, $matches);
 
         return implode("\n", $matches[1]);
     }
 
     /**
-     * The page text without code samples and without link addresses.
+     * The page text without its emphasis markers.
      *
-     * @param string $content
+     * @param string $cleaned Page text the noise patterns already ran over
      * @return string
      */
-    private function body(string $content): string
+    private function body(string $cleaned): string
     {
-        foreach (self::NOISE_PATTERNS as $pattern => $replacement) {
+        return trim($this->replace($cleaned, self::EMPHASIS_PATTERNS));
+    }
+
+    /**
+     * Run a set of patterns over the text, keeping the text as it was when one of them fails.
+     *
+     * @param string $content
+     * @param array<string,string> $patterns
+     * @return string
+     */
+    private function replace(string $content, array $patterns): string
+    {
+        foreach ($patterns as $pattern => $replacement) {
             $stripped = preg_replace($pattern, $replacement, $content);
             $content = is_string($stripped) ? $stripped : $content;
         }
 
-        return trim($content);
+        return $content;
     }
 }

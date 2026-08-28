@@ -98,6 +98,52 @@ class IndexerTest extends TestCase
         $this->assertStringNotContainsString('not a # heading', $record['headings']);
     }
 
+    public function testDropsFrontMatterFromTheBody(): void
+    {
+        $record = $this->buildOne("---\ntitle: Invoices\norder: 5\n---\n\nreal prose here\n");
+
+        $this->assertSame('real prose here', $record['body']);
+    }
+
+    public function testDropsFrontMatterBehindAByteOrderMarkAndWindowsLineEndings(): void
+    {
+        $record = $this->buildOne("\xEF\xBB\xBF---\r\ntitle: Invoices\r\n---\r\n\r\nreal prose here\r\n");
+
+        $this->assertStringNotContainsString('title', $record['body']);
+        $this->assertStringContainsString('real prose here', $record['body']);
+    }
+
+    public function testKeepsAThematicBreakThatOnlyLooksLikeFrontMatter(): void
+    {
+        $record = $this->buildOne("intro\n\n---\nnot front matter\n---\n\ntail");
+
+        $this->assertStringContainsString('not front matter', $record['body']);
+        $this->assertStringContainsString('intro', $record['body']);
+    }
+
+    public function testDoesNotTreatACommentInsideAFenceAsAHeading(): void
+    {
+        $record = $this->buildOne("```\n# not a real heading\n```\n\n## Real Heading\n");
+
+        $this->assertStringNotContainsString('not a real heading', $record['headings']);
+        $this->assertStringContainsString('Real Heading', $record['headings']);
+    }
+
+    public function testDropsLinkUrlsFromHeadingsAsWellAsFromTheBody(): void
+    {
+        $record = $this->buildOne("## See [the docs](https://example.com/docs)\n");
+
+        $this->assertSame('See the docs', $record['headings']);
+        $this->assertStringNotContainsString('http', $record['headings']);
+    }
+
+    public function testDropsEmphasisMarkersButKeepsTheWordsTheyWrap(): void
+    {
+        $record = $this->buildOne('the **invoice** total is ~~never~~ *rounded*');
+
+        $this->assertSame('the invoice total is never rounded', $record['body']);
+    }
+
     public function testStripsFencedCodeBlocksFromTheBody(): void
     {
         $content = "before\n\n```\nrun `hiddencommand` now\n```\n\nafter\n";
