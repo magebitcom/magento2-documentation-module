@@ -1,12 +1,22 @@
 {
     "name": "magebitcom/module-documentation",
-    "description": "Module documentation viewer for Magento 2 admin",
+    "description": "Module documentation viewer for the Magento 2 admin panel",
     "type": "magento2-module",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Magebit",
+            "email": "info@magebit.com",
+            "homepage": "https://magebit.com"
+        }
+    ],
     "require": {
         "php": "^8.1",
-        "magento/framework": "*",
-        "league/commonmark": "^2.0"
+        "ext-dom": "*",
+        "ext-mbstring": "*",
+        "magento/framework": "^103.0",
+        "league/commonmark": "^2.10",
+        "symfony/yaml": "^5.4 || ^6.0 || ^7.0"
     },
     "autoload": {
         "files": [
@@ -14,6 +24,15 @@
         ],
         "psr-4": {
             "Magebit\\Documentation\\": ""
-        }
+        },
+        "exclude-from-classmap": [
+            "Test/"
+        ]
+    },
+    "archive": {
+        "exclude": [
+            "/docs/plan",
+            "/Test"
+        ]
     }
 }
