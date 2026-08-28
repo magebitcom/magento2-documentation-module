@@ -28,7 +28,7 @@ class PageRepositoryTest extends TestCase
 
     private const PLAIN = "# Plain\n";
 
-    private const CHANGELOG = "# 1.0.0\n";
+    private const CHANGELOG = "---\ntitle: Release Notes\n---\n# 1.0.0\n";
 
     /**
      * @var string
@@ -127,7 +127,7 @@ class PageRepositoryTest extends TestCase
 
         $repository = $this->repository($tree, $resolver);
 
-        $this->assertNull($repository->getContent('Vendor_A', 'Guide', '../../../app/etc/env.php'));
+        $this->assertNull($repository->getContent('Vendor_A', 'Guide', 'notes.txt'));
     }
 
     public function testLogsAndReturnsNullWhenTheFileCannotBeRead(): void
@@ -196,6 +196,47 @@ class PageRepositoryTest extends TestCase
         $this->assertSame(
             self::PLAIN,
             $repository->getContentForSection('Vendor_A', $this->section(), 'plain.md')
+        );
+    }
+
+    public function testReadsAChangelogForAnAlreadyResolvedSection(): void
+    {
+        $tree = $this->createMock(DocumentationTreeInterface::class);
+        $tree->expects($this->never())->method('getSection');
+
+        $resolver = $this->createMock(PathResolverInterface::class);
+        $resolver->expects($this->once())
+            ->method('resolveChangelogFile')
+            ->with('Vendor_A', 'Docs')
+            ->willReturn(['path' => $this->changelogRoot . '/CHANGELOG.md', 'fileName' => 'CHANGELOG.md']);
+        $resolver->expects($this->never())->method('resolveSectionRoot');
+        $resolver->expects($this->never())->method('resolveFile');
+
+        $repository = $this->repository($tree, $resolver);
+
+        $this->assertSame(
+            self::CHANGELOG,
+            $repository->getContentForSection('Vendor_A', $this->section(true), 'CHANGELOG.md')
+        );
+    }
+
+    public function testReturnsTheFrontMatterOfAChangelog(): void
+    {
+        $tree = $this->treeWith($this->section(true));
+
+        $resolver = $this->createMock(PathResolverInterface::class);
+        $resolver->expects($this->once())
+            ->method('resolveChangelogFile')
+            ->with('Vendor_A', 'Docs')
+            ->willReturn(['path' => $this->changelogRoot . '/CHANGELOG.md', 'fileName' => 'CHANGELOG.md']);
+        $resolver->expects($this->never())->method('resolveSectionRoot');
+        $resolver->expects($this->never())->method('resolveFile');
+
+        $repository = $this->repository($tree, $resolver);
+
+        $this->assertSame(
+            ['title' => 'Release Notes'],
+            $repository->getFrontMatter('Vendor_A', 'Guide', 'CHANGELOG.md')
         );
     }
 
