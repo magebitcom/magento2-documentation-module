@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Cache/etc/cache.xsd">
+    <type name="magebit_documentation"
+          translate="label,description"
+          instance="Magento\Framework\App\Cache\Type\Config">
+        <label>Documentation</label>
+        <description>Documentation tree, page content and search index</description>
+    </type>
+</config>

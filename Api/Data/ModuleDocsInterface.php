@@ -44,9 +44,9 @@ interface ModuleDocsInterface
     public function getSortOrder(): int;
 
     /**
-     * The documentation sections registered by this module.
+     * The documentation sections registered by this module, as an ordered list.
      *
-     * @return SectionInterface[]
+     * @return list<SectionInterface>
      */
     public function getSections(): array;
 }

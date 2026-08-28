@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+
+    <preference for="Magebit\Documentation\Api\PathResolverInterface"
+                type="Magebit\Documentation\Model\Path\Resolver"/>
+    <preference for="Magebit\Documentation\Api\DirectoryScannerInterface"
+                type="Magebit\Documentation\Model\Scanner\DirectoryScanner"/>
+    <preference for="Magebit\Documentation\Api\DocumentationTreeInterface"
+                type="Magebit\Documentation\Model\DocumentationTree"/>
+
+    <virtualType name="Magebit\Documentation\Model\Config\SchemaLocator"
+                 type="Magento\Framework\Config\GenericSchemaLocator">
+        <arguments>
+            <argument name="moduleName" xsi:type="string">Magebit_Documentation</argument>
+            <argument name="schema" xsi:type="string">documentation.xsd</argument>
+            <argument name="perFileSchema" xsi:type="string">documentation.xsd</argument>
+        </arguments>
+    </virtualType>
+
+    <virtualType name="Magebit\Documentation\Model\Config\Reader"
+                 type="Magento\Framework\Config\Reader\Filesystem">
+        <arguments>
+            <argument name="converter" xsi:type="object">Magebit\Documentation\Model\Config\Converter</argument>
+            <argument name="schemaLocator" xsi:type="object">Magebit\Documentation\Model\Config\SchemaLocator</argument>
+            <argument name="fileName" xsi:type="string">documentation.xml</argument>
+            <argument name="idAttributes" xsi:type="array">
+                <item name="/config/module" xsi:type="string">name</item>
+                <item name="/config/module/documentation" xsi:type="string">name</item>
+                <item name="/config/module/changelog" xsi:type="string">path</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Magebit\Documentation\Model\Config\Data">
+        <arguments>
+            <argument name="reader" xsi:type="object">Magebit\Documentation\Model\Config\Reader</argument>
+            <argument name="cacheId" xsi:type="string">magebit_documentation_config</argument>
+        </arguments>
+    </type>
+
+    <virtualType name="Magebit\Documentation\Model\Tree\CacheType"
+                 type="Magento\Framework\App\Cache\Type\Config"/>
+
+    <type name="Magebit\Documentation\Model\Tree\Storage">
+        <arguments>
+            <argument name="cache" xsi:type="object">Magebit\Documentation\Model\Tree\CacheType</argument>
+        </arguments>
+    </type>
+</config>

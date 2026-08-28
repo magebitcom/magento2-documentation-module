@@ -20,7 +20,7 @@ class ModuleDocs implements ModuleDocsInterface
      * @param string $title
      * @param string|null $icon
      * @param int $sortOrder
-     * @param SectionInterface[] $sections
+     * @param list<SectionInterface> $sections
      */
     public function __construct(
         private readonly string $moduleName,
