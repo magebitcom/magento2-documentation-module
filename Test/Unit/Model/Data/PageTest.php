@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Magebit\Documentation\Test\Unit\Model\Data;
 
 use Magebit\Documentation\Model\Data\Category;
+use Magebit\Documentation\Model\Data\ModuleDocs;
 use Magebit\Documentation\Model\Data\Page;
 use PHPUnit\Framework\TestCase;
 
@@ -37,5 +38,19 @@ class PageTest extends TestCase
         $child = new Category('advanced', 100, [new Page('a.md', 'a.md', 'A', 1000, false)], []);
 
         $this->assertFalse((new Category('', 100, [], ['advanced' => $child]))->isEmpty());
+    }
+
+    public function testModuleDocsTitleFallsBackToModuleNameWhenEmpty(): void
+    {
+        $moduleDocs = new ModuleDocs('Vendor_Module', '', null, 100, []);
+
+        $this->assertSame('Vendor_Module', $moduleDocs->getTitle());
+    }
+
+    public function testModuleDocsTitleIsReturnedUnchangedWhenSet(): void
+    {
+        $moduleDocs = new ModuleDocs('Vendor_Module', 'My Module', null, 100, []);
+
+        $this->assertSame('My Module', $moduleDocs->getTitle());
     }
 }

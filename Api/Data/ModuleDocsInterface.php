@@ -30,7 +30,7 @@ interface ModuleDocsInterface
     public function getTitle(): string;
 
     /**
-     * The icon markup for this module's menu entry, if any.
+     * View-asset path for this module's menu icon, e.g. "Magebit_Documentation::images/icon.svg".
      *
      * @return string|null
      */

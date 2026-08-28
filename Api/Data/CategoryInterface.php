@@ -37,7 +37,7 @@ interface CategoryInterface
     public function getPages(): array;
 
     /**
-     * The sub-categories directly inside this category.
+     * The sub-categories directly inside this category, as an ordered list (not keyed by name).
      *
      * @return CategoryInterface[]
      */
