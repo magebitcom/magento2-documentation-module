@@ -18,8 +18,8 @@ class Category implements CategoryInterface
     /**
      * @param string $label
      * @param int $sortOrder
-     * @param PageInterface[] $pages
-     * @param CategoryInterface[] $categories
+     * @param list<PageInterface> $pages
+     * @param list<CategoryInterface> $categories
      */
     public function __construct(
         private readonly string $label,

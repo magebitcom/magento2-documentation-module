@@ -74,6 +74,18 @@ class FileNameParserTest extends TestCase
                 '2024.md',
                 ['sortOrder' => 1000, 'label' => '2024', 'isIndex' => false],
             ],
+            'dotted directory name keeps its dot' => [
+                '2.4-upgrade',
+                ['sortOrder' => 1000, 'label' => '2.4 Upgrade', 'isIndex' => false],
+            ],
+            'dotted markdown file keeps its dot' => [
+                'v1.0-intro.md',
+                ['sortOrder' => 1000, 'label' => 'V1.0 Intro', 'isIndex' => false],
+            ],
+            'uppercase extension' => [
+                '1-Setup.MD',
+                ['sortOrder' => 1, 'label' => 'Setup', 'isIndex' => false],
+            ],
         ];
     }
 }

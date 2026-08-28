@@ -31,6 +31,11 @@ class DirectoryScannerTest extends TestCase
     private string $orderingRoot;
 
     /**
+     * @var string
+     */
+    private string $deepRoot;
+
+    /**
      * @var DirectoryScanner
      */
     private DirectoryScanner $scanner;
@@ -40,6 +45,7 @@ class DirectoryScannerTest extends TestCase
         $base = (string)realpath(sys_get_temp_dir());
         $this->root = $base . '/magedoc-scan-' . uniqid('', true);
         $this->orderingRoot = $this->root . '-ordering';
+        $this->deepRoot = $this->root . '-deep';
 
         mkdir($this->root . '/2-advanced', 0777, true);
         mkdir($this->root . '/1-basics', 0777, true);
@@ -63,11 +69,18 @@ class DirectoryScannerTest extends TestCase
         file_put_contents($this->orderingRoot . '/Zebra.md', '# Zebra');
         file_put_contents($this->orderingRoot . '/banana.md', '# Banana');
 
-        $this->scanner = new DirectoryScanner(
-            new File(),
-            new FileNameParser(),
-            $this->createMock(LoggerInterface::class)
-        );
+        // Twelve levels, two more than the scanner will follow.
+        $nested = $this->deepRoot;
+        for ($level = 1; $level <= 12; $level++) {
+            $nested .= '/level';
+            mkdir($nested, 0777, true);
+            file_put_contents($nested . '/page.md', '# Level ' . $level);
+        }
+
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->never())->method('warning');
+
+        $this->scanner = new DirectoryScanner(new File(), new FileNameParser(), $logger);
     }
 
     protected function tearDown(): void
@@ -75,6 +88,7 @@ class DirectoryScannerTest extends TestCase
         $driver = new File();
         $driver->deleteDirectory($this->root);
         $driver->deleteDirectory($this->orderingRoot);
+        $driver->deleteDirectory($this->deepRoot);
     }
 
     public function testOrdersIndexFirstThenByNumericPrefix(): void
@@ -94,6 +108,7 @@ class DirectoryScannerTest extends TestCase
             $this->scanner->scan($this->root)->getPages()
         );
 
+        $this->assertSame(['index.md', '1-intro.md', '2-setup.md'], $names);
         $this->assertNotContains('notes.txt', $names);
     }
 
@@ -114,6 +129,7 @@ class DirectoryScannerTest extends TestCase
             $this->scanner->scan($this->root)->getCategories()
         );
 
+        $this->assertSame(['Basics', 'Advanced'], $labels);
         $this->assertNotContains('Empty', $labels);
     }
 
@@ -126,12 +142,41 @@ class DirectoryScannerTest extends TestCase
 
     public function testMissingDirectoryYieldsAnEmptyRootAndLogs(): void
     {
+        $missing = $this->root . '/does-not-exist';
+
         $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects($this->once())->method('warning');
+        $logger->expects($this->once())
+            ->method('warning')
+            ->with(
+                $this->stringContains('could not read a documentation directory'),
+                $this->callback(
+                    static fn (mixed $context): bool => is_array($context)
+                        && ($context['path'] ?? null) === $missing
+                )
+            );
 
         $scanner = new DirectoryScanner(new File(), new FileNameParser(), $logger);
 
-        $this->assertTrue($scanner->scan($this->root . '/does-not-exist')->isEmpty());
+        $this->assertTrue($scanner->scan($missing)->isEmpty());
+    }
+
+    public function testStopsDescendingBeyondTheDepthLimitAndLogs(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('warning')
+            ->with($this->stringContains('nests too deeply'), $this->arrayHasKey('path'));
+
+        $scanner = new DirectoryScanner(new File(), new FileNameParser(), $logger);
+
+        $category = $scanner->scan($this->deepRoot);
+        $depth = 0;
+        while ($category->getCategories() !== []) {
+            $category = $category->getCategories()[0];
+            $depth++;
+        }
+
+        $this->assertSame(10, $depth);
     }
 
     public function testOrdersPagesByPrefixThenCaseInsensitiveLabel(): void

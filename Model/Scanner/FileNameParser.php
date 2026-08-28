@@ -16,6 +16,8 @@ class FileNameParser
 
     private const INDEX_NAMES = ['index', 'readme'];
 
+    private const MARKDOWN_SUFFIX = '.md';
+
     /**
      * Split a file or directory name into its sort order and display label.
      *
@@ -24,7 +26,7 @@ class FileNameParser
      */
     public function parse(string $fileName): array
     {
-        $base = $this->stripExtension($fileName);
+        $base = $this->stripMarkdownSuffix($fileName);
         $sortOrder = self::DEFAULT_SORT_ORDER;
 
         if (preg_match('/^(\d+)[-_](.+)$/', $base, $matches) === 1) {
@@ -42,16 +44,18 @@ class FileNameParser
     }
 
     /**
-     * Drop the file extension, leaving directory names untouched.
+     * Drop a trailing ".md", in any letter case. Every other name, dots and all, is left alone.
      *
      * @param string $fileName
      * @return string
      */
-    private function stripExtension(string $fileName): string
+    private function stripMarkdownSuffix(string $fileName): string
     {
-        $dot = strrpos($fileName, '.');
+        if (!str_ends_with(strtolower($fileName), self::MARKDOWN_SUFFIX)) {
+            return $fileName;
+        }
 
-        return $dot === false ? $fileName : substr($fileName, 0, $dot);
+        return substr($fileName, 0, -strlen(self::MARKDOWN_SUFFIX));
     }
 
     /**

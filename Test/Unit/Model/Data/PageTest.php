@@ -37,7 +37,7 @@ class PageTest extends TestCase
     {
         $child = new Category('advanced', 100, [new Page('a.md', 'a.md', 'A', 1000, false)], []);
 
-        $this->assertFalse((new Category('', 100, [], ['advanced' => $child]))->isEmpty());
+        $this->assertFalse((new Category('', 100, [], [$child]))->isEmpty());
     }
 
     public function testModuleDocsTitleFallsBackToModuleNameWhenEmpty(): void

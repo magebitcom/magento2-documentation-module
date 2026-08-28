@@ -25,6 +25,8 @@ class DirectoryScanner implements DirectoryScannerInterface
 
     private const ROOT_SORT_ORDER = 100;
 
+    private const MAX_DEPTH = 10;
+
     /**
      * @param FileDriver $fileDriver
      * @param FileNameParser $fileNameParser
@@ -42,7 +44,7 @@ class DirectoryScanner implements DirectoryScannerInterface
      */
     public function scan(string $absoluteRoot): CategoryInterface
     {
-        return $this->scanInto($absoluteRoot, '', '', self::ROOT_SORT_ORDER);
+        return $this->scanInto($absoluteRoot, '', '', self::ROOT_SORT_ORDER, 0);
     }
 
     /**
@@ -52,16 +54,28 @@ class DirectoryScanner implements DirectoryScannerInterface
      * @param string $relativePrefix
      * @param string $label
      * @param int $sortOrder
+     * @param int $depth
      * @return CategoryInterface
      */
     private function scanInto(
         string $absolutePath,
         string $relativePrefix,
         string $label,
-        int $sortOrder
+        int $sortOrder,
+        int $depth
     ): CategoryInterface {
         $pages = [];
         $categories = [];
+
+        // Stops symlink loops, which the file driver follows, from building an endless tree.
+        if ($depth > self::MAX_DEPTH) {
+            $this->logger->warning(
+                'Magebit_Documentation stopped reading a documentation directory that nests too deeply.',
+                ['path' => $absolutePath, 'maxDepth' => self::MAX_DEPTH]
+            );
+
+            return new Category($label, $sortOrder, [], []);
+        }
 
         try {
             $entries = $this->fileDriver->readDirectory($absolutePath);
@@ -84,7 +98,8 @@ class DirectoryScanner implements DirectoryScannerInterface
                     $entry,
                     $relativePrefix . $name . '/',
                     $parsed['label'],
-                    $parsed['sortOrder']
+                    $parsed['sortOrder'],
+                    $depth + 1
                 );
 
                 if (!$child->isEmpty()) {
@@ -113,8 +128,8 @@ class DirectoryScanner implements DirectoryScannerInterface
     /**
      * Index pages first, then by numeric prefix, then alphabetically.
      *
-     * @param PageInterface[] $pages
-     * @return PageInterface[]
+     * @param list<PageInterface> $pages
+     * @return list<PageInterface>
      */
     private function sortPages(array $pages): array
     {
@@ -130,8 +145,8 @@ class DirectoryScanner implements DirectoryScannerInterface
     /**
      * Order categories by numeric prefix, then alphabetically.
      *
-     * @param CategoryInterface[] $categories
-     * @return CategoryInterface[]
+     * @param list<CategoryInterface> $categories
+     * @return list<CategoryInterface>
      */
     private function sortCategories(array $categories): array
     {

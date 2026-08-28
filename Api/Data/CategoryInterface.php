@@ -32,14 +32,14 @@ interface CategoryInterface
     /**
      * The pages directly inside this category.
      *
-     * @return PageInterface[]
+     * @return list<PageInterface>
      */
     public function getPages(): array;
 
     /**
      * The sub-categories directly inside this category, as an ordered list (not keyed by name).
      *
-     * @return CategoryInterface[]
+     * @return list<CategoryInterface>
      */
     public function getCategories(): array;
 
