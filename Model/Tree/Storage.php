@@ -15,11 +15,12 @@ use Magebit\Documentation\Api\Data\CategoryInterface;
 use Magebit\Documentation\Api\Data\ModuleDocsInterface;
 use Magebit\Documentation\Api\Data\PageInterface;
 use Magebit\Documentation\Api\Data\SectionInterface;
+use Magebit\Documentation\Model\Cache\Type as CacheType;
 use Magebit\Documentation\Model\Data\Category;
 use Magebit\Documentation\Model\Data\ModuleDocs;
 use Magebit\Documentation\Model\Data\Page;
 use Magebit\Documentation\Model\Data\Section;
-use Magento\Framework\Cache\FrontendInterface;
+use Magento\Framework\App\Cache\Type\Config as ConfigCacheType;
 use Magento\Framework\Serialize\SerializerInterface;
 
 /**
@@ -30,11 +31,11 @@ class Storage
     private const CACHE_KEY = 'magebit_documentation_tree';
 
     /**
-     * @param FrontendInterface $cache
+     * @param CacheType $cache
      * @param SerializerInterface $serializer
      */
     public function __construct(
-        private readonly FrontendInterface $cache,
+        private readonly CacheType $cache,
         private readonly SerializerInterface $serializer
     ) {
     }
@@ -62,7 +63,7 @@ class Storage
     }
 
     /**
-     * Store the tree. The injected cache type tags the entry, so cleaning that type drops it.
+     * Store the tree, tagged with this cache type and with the config cache it is built from.
      *
      * @param array<string,ModuleDocsInterface> $tree
      * @return void
@@ -79,7 +80,7 @@ class Storage
 
         // Nothing worth caching when the tree cannot be serialized; the next request rebuilds it.
         if (is_string($serialized)) {
-            $this->cache->save($serialized, self::CACHE_KEY);
+            $this->cache->save($serialized, self::CACHE_KEY, [ConfigCacheType::CACHE_TAG]);
         }
     }
 

@@ -38,13 +38,4 @@
             <argument name="cacheId" xsi:type="string">magebit_documentation_config</argument>
         </arguments>
     </type>
-
-    <virtualType name="Magebit\Documentation\Model\Tree\CacheType"
-                 type="Magento\Framework\App\Cache\Type\Config"/>
-
-    <type name="Magebit\Documentation\Model\Tree\Storage">
-        <arguments>
-            <argument name="cache" xsi:type="object">Magebit\Documentation\Model\Tree\CacheType</argument>
-        </arguments>
-    </type>
 </config>

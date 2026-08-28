@@ -11,12 +11,13 @@ declare(strict_types=1);
 namespace Magebit\Documentation\Test\Unit\Model\Tree;
 
 use Magebit\Documentation\Api\Data\ModuleDocsInterface;
+use Magebit\Documentation\Model\Cache\Type as CacheType;
 use Magebit\Documentation\Model\Data\Category;
 use Magebit\Documentation\Model\Data\ModuleDocs;
 use Magebit\Documentation\Model\Data\Page;
 use Magebit\Documentation\Model\Data\Section;
 use Magebit\Documentation\Model\Tree\Storage;
-use Magento\Framework\Cache\FrontendInterface;
+use Magento\Framework\App\Cache\Type\Config as ConfigCacheType;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -24,9 +25,9 @@ use PHPUnit\Framework\TestCase;
 class StorageTest extends TestCase
 {
     /**
-     * @var FrontendInterface&MockObject
+     * @var CacheType&MockObject
      */
-    private FrontendInterface $cache;
+    private CacheType $cache;
 
     /**
      * @var Storage
@@ -35,7 +36,7 @@ class StorageTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->cache = $this->createMock(FrontendInterface::class);
+        $this->cache = $this->createMock(CacheType::class);
         $this->storage = new Storage($this->cache, new Json());
     }
 
@@ -51,6 +52,15 @@ class StorageTest extends TestCase
         $this->cache->expects($this->once())
             ->method('save')
             ->with($this->isType('string'), 'magebit_documentation_tree');
+
+        $this->storage->save($this->tree());
+    }
+
+    public function testTagsTheEntryWithTheConfigCacheItIsBuiltFrom(): void
+    {
+        $this->cache->expects($this->once())
+            ->method('save')
+            ->with($this->isType('string'), 'magebit_documentation_tree', [ConfigCacheType::CACHE_TAG]);
 
         $this->storage->save($this->tree());
     }
