@@ -37,7 +37,7 @@ class ResolverTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->root = sys_get_temp_dir() . '/magedoc-' . uniqid('', true);
+        $this->root = (string)realpath(sys_get_temp_dir()) . '/magedoc-' . uniqid('', true);
 
         mkdir($this->root . '/Vendor_A/Docs/advanced', 0777, true);
         mkdir($this->root . '/Vendor_B/Docs', 0777, true);
@@ -49,6 +49,8 @@ class ResolverTest extends TestCase
         file_put_contents($this->root . '/Vendor_B/Docs/guide.md', '# Guide');
         file_put_contents($this->root . '/Vendor_B/Docs/CHANGELOG.md', '# B changes');
         file_put_contents($this->root . '/Vendor_AOther/Docs/other.md', '# Other');
+        mkdir($this->root . '/Vendor_A/Docs/v1.2');
+        file_put_contents($this->root . '/Vendor_A/Docs/v1.2/README', 'no extension');
 
         $this->registrar = $this->createMock(ComponentRegistrarInterface::class);
         $this->registrar->method('getPath')->willReturnCallback(
@@ -88,9 +90,25 @@ class ResolverTest extends TestCase
         $this->assertNull($this->resolver->resolveSectionRoot('Vendor_A', 'Vendor_Missing::Docs'));
     }
 
-    public function testReturnsNullWhenSectionRootIsNotADirectory(): void
+    public function testReturnsNullWhenSectionRootDoesNotExist(): void
     {
         $this->assertNull($this->resolver->resolveSectionRoot('Vendor_A', 'NoSuchFolder'));
+    }
+
+    public function testReturnsNullWhenSectionRootIsNotADirectory(): void
+    {
+        $this->assertNull($this->resolver->resolveSectionRoot('Vendor_A', 'secret.env'));
+    }
+
+    public function testRefusesSectionRootOutsideTheModule(): void
+    {
+        $this->assertNull($this->resolver->resolveSectionRoot('Vendor_A', '../Vendor_B/Docs'));
+    }
+
+    public function testRefusesEmptyPathAfterAModulePrefix(): void
+    {
+        $this->assertNull($this->resolver->resolveSectionRoot('Vendor_A', 'Vendor_B::'));
+        $this->assertNull($this->resolver->resolveChangelogFile('Vendor_A', 'Vendor_B::'));
     }
 
     public function testResolvesFileInsideSectionRoot(): void
@@ -131,6 +149,14 @@ class ResolverTest extends TestCase
         file_put_contents($root . '/UPPER.MD', '# Upper');
 
         $this->assertSame($root . '/UPPER.MD', $this->resolver->resolveFile($root, 'UPPER.MD', ['md']));
+        $this->assertSame($root . '/intro.md', $this->resolver->resolveFile($root, 'intro.md', ['MD']));
+    }
+
+    public function testRefusesFileWithoutExtensionInsideADottedDirectory(): void
+    {
+        $root = $this->root . '/Vendor_A/Docs';
+
+        $this->assertNull($this->resolver->resolveFile($root, 'v1.2/README', ['md']));
     }
 
     public function testRefusesNullByteInPath(): void

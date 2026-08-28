@@ -41,6 +41,9 @@ class Resolver implements PathResolverInterface
         }
 
         [$targetModule, $relativePath] = $this->splitModulePath($contextModule, $configuredPath);
+        if ($relativePath === '') {
+            return null;
+        }
 
         $modulePath = $this->moduleDirectory($targetModule);
         if ($modulePath === null) {
@@ -86,6 +89,9 @@ class Resolver implements PathResolverInterface
         }
 
         [$targetModule, $relativePath] = $this->splitModulePath($contextModule, $configuredPath);
+        if ($relativePath === '') {
+            return null;
+        }
 
         $modulePath = $this->moduleDirectory($targetModule);
         if ($modulePath === null) {
@@ -170,11 +176,16 @@ class Resolver implements PathResolverInterface
      */
     private function hasAllowedExtension(string $path, array $allowedExtensions): bool
     {
-        $dot = strrpos($path, '.');
+        $separator = strrpos($path, DIRECTORY_SEPARATOR);
+        $fileName = $separator === false ? $path : substr($path, $separator + 1);
+
+        $dot = strrpos($fileName, '.');
         if ($dot === false) {
             return false;
         }
 
-        return in_array(strtolower(substr($path, $dot + 1)), $allowedExtensions, true);
+        $extension = strtolower(substr($fileName, $dot + 1));
+
+        return in_array($extension, array_map('strtolower', $allowedExtensions), true);
     }
 }
