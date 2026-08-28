@@ -11,7 +11,7 @@ define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hl
     return function (config, element) {
         var settings = config || {},
             basePath = settings.languagePath || DEFAULT_LANGUAGE_PATH,
-            extras = settings.languages || [],
+            extras = Array.isArray(settings.languages) ? settings.languages : [],
             blocks = Array.prototype.slice.call(
                 element.querySelectorAll('pre code[data-doc-highlight]')
             );
@@ -34,7 +34,8 @@ define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hl
          */
         function loadMissingLanguages(nodes, configured, languagePath, done) {
             var wanted = {},
-                names;
+                names,
+                pending;
 
             nodes.forEach(function (node) {
                 want(node.getAttribute('data-doc-highlight'));
@@ -43,20 +44,24 @@ define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hl
             configured.forEach(want);
 
             names = Object.keys(wanted);
+            pending = names.length;
 
-            if (!names.length) {
+            if (!pending) {
                 done();
 
                 return;
             }
 
-            require(
-                names.map(function (name) {
-                    return languagePath + '/' + name + '.min';
-                }),
-                done,
-                done
-            );
+            // One request per language, so a file that fails costs only its own blocks.
+            names.forEach(function (name) {
+                require([languagePath + '/' + name + '.min'], finish, function (error) {
+                    console.warn(
+                        'Magebit_Documentation could not load highlighting for "' + name + '".',
+                        error
+                    );
+                    finish();
+                });
+            });
 
             /**
              * Remember a language highlight.js does not know yet.
@@ -66,6 +71,17 @@ define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hl
             function want(name) {
                 if (name && !hljs.getLanguage(name)) {
                     wanted[name] = true;
+                }
+            }
+
+            /**
+             * Start highlighting once every language has been tried.
+             */
+            function finish() {
+                pending--;
+
+                if (!pending) {
+                    done();
                 }
             }
         }
