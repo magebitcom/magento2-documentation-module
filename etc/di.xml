@@ -14,6 +14,8 @@
                 type="Magebit\Documentation\Model\Markdown\Renderer"/>
     <preference for="Magebit\Documentation\Api\SyntaxHighlighterInterface"
                 type="Magebit\Documentation\Model\Highlighter\ClientSide"/>
+    <preference for="Magebit\Documentation\Api\SearchIndexInterface"
+                type="Magebit\Documentation\Model\Search\Index"/>
 
     <virtualType name="Magebit\Documentation\Model\Config\SchemaLocator"
                  type="Magento\Framework\Config\GenericSchemaLocator">
