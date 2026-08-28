@@ -14,9 +14,11 @@ use Magebit\Documentation\Api\Data\CategoryInterface;
 use Magebit\Documentation\Api\Data\PageInterface;
 use Magebit\Documentation\Model\Scanner\DirectoryScanner;
 use Magebit\Documentation\Model\Scanner\FileNameParser;
+use Magebit\Documentation\Model\Scanner\FrontMatterReader;
 use Magento\Framework\Filesystem\Driver\File;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Yaml\Parser;
 
 class DirectoryScannerTest extends TestCase
 {
@@ -36,6 +38,16 @@ class DirectoryScannerTest extends TestCase
     private string $deepRoot;
 
     /**
+     * @var string
+     */
+    private string $frontMatterRoot;
+
+    /**
+     * @var string
+     */
+    private string $brokenFrontMatterRoot;
+
+    /**
      * @var DirectoryScanner
      */
     private DirectoryScanner $scanner;
@@ -46,6 +58,8 @@ class DirectoryScannerTest extends TestCase
         $this->root = $base . '/magedoc-scan-' . uniqid('', true);
         $this->orderingRoot = $this->root . '-ordering';
         $this->deepRoot = $this->root . '-deep';
+        $this->frontMatterRoot = $this->root . '-front-matter';
+        $this->brokenFrontMatterRoot = $this->root . '-broken-front-matter';
 
         mkdir($this->root . '/2-advanced', 0777, true);
         mkdir($this->root . '/1-basics', 0777, true);
@@ -77,10 +91,26 @@ class DirectoryScannerTest extends TestCase
             file_put_contents($nested . '/page.md', '# Level ' . $level);
         }
 
+        // Front matter titles reverse the alphabetical order of the file names they override.
+        mkdir($this->frontMatterRoot, 0777, true);
+        file_put_contents($this->frontMatterRoot . '/index.md', "---\norder: 999\n---\n# Overview");
+        file_put_contents($this->frontMatterRoot . '/1-alpha.md', "---\ntitle: Zeta\n---\n# Zeta");
+        file_put_contents($this->frontMatterRoot . '/1-zeta.md', "---\ntitle: Alpha\n---\n# Alpha");
+        file_put_contents($this->frontMatterRoot . '/9-later.md', "---\norder: 2\n---\n# Later");
+        file_put_contents($this->frontMatterRoot . '/3-middle.md', '# Middle');
+
+        mkdir($this->brokenFrontMatterRoot, 0777, true);
+        file_put_contents($this->brokenFrontMatterRoot . '/2-broken.md', "---\ntitle: \"unclosed\n---\n# Broken");
+
         $logger = $this->createMock(LoggerInterface::class);
         $logger->expects($this->never())->method('warning');
 
-        $this->scanner = new DirectoryScanner(new File(), new FileNameParser(), $logger);
+        $this->scanner = new DirectoryScanner(
+            new File(),
+            new FileNameParser(),
+            new FrontMatterReader(new File(), new Parser(), $logger),
+            $logger
+        );
     }
 
     protected function tearDown(): void
@@ -89,6 +119,8 @@ class DirectoryScannerTest extends TestCase
         $driver->deleteDirectory($this->root);
         $driver->deleteDirectory($this->orderingRoot);
         $driver->deleteDirectory($this->deepRoot);
+        $driver->deleteDirectory($this->frontMatterRoot);
+        $driver->deleteDirectory($this->brokenFrontMatterRoot);
     }
 
     public function testOrdersIndexFirstThenByNumericPrefix(): void
@@ -155,7 +187,12 @@ class DirectoryScannerTest extends TestCase
                 )
             );
 
-        $scanner = new DirectoryScanner(new File(), new FileNameParser(), $logger);
+        $scanner = new DirectoryScanner(
+            new File(),
+            new FileNameParser(),
+            new FrontMatterReader(new File(), new Parser(), $logger),
+            $logger
+        );
 
         $this->assertTrue($scanner->scan($missing)->isEmpty());
     }
@@ -167,7 +204,12 @@ class DirectoryScannerTest extends TestCase
             ->method('warning')
             ->with($this->stringContains('nests too deeply'), $this->arrayHasKey('path'));
 
-        $scanner = new DirectoryScanner(new File(), new FileNameParser(), $logger);
+        $scanner = new DirectoryScanner(
+            new File(),
+            new FileNameParser(),
+            new FrontMatterReader(new File(), new Parser(), $logger),
+            $logger
+        );
 
         $category = $scanner->scan($this->deepRoot);
         $depth = 0;
@@ -197,5 +239,55 @@ class DirectoryScannerTest extends TestCase
         );
 
         $this->assertSame(['Banana', 'Zulu', 'Beta'], $labels);
+    }
+
+    public function testFrontMatterTitleOverridesTheFileNameLabel(): void
+    {
+        $titles = array_map(
+            static fn (PageInterface $page): string => $page->getTitle(),
+            $this->scanner->scan($this->frontMatterRoot)->getPages()
+        );
+
+        $this->assertSame(['Overview', 'Alpha', 'Zeta', 'Later', 'Middle'], $titles);
+    }
+
+    public function testFrontMatterOrderOverridesTheNumericPrefix(): void
+    {
+        $orders = array_map(
+            static fn (PageInterface $page): int => $page->getSortOrder(),
+            $this->scanner->scan($this->frontMatterRoot)->getPages()
+        );
+
+        $this->assertSame([999, 1, 1, 2, 3], $orders);
+    }
+
+    public function testIndexStaysFirstAndTiesBreakOnTheFinalTitle(): void
+    {
+        $names = array_map(
+            static fn (PageInterface $page): string => $page->getFileName(),
+            $this->scanner->scan($this->frontMatterRoot)->getPages()
+        );
+
+        $this->assertSame(['index.md', '1-zeta.md', '1-alpha.md', '9-later.md', '3-middle.md'], $names);
+    }
+
+    public function testMalformedFrontMatterFallsBackToTheFileNameConvention(): void
+    {
+        $logger = $this->createMock(LoggerInterface::class);
+        $logger->expects($this->once())
+            ->method('warning')
+            ->with($this->stringContains('could not parse the front matter'), $this->arrayHasKey('path'));
+
+        $scanner = new DirectoryScanner(
+            new File(),
+            new FileNameParser(),
+            new FrontMatterReader(new File(), new Parser(), $logger),
+            $this->createMock(LoggerInterface::class)
+        );
+
+        $page = $scanner->scan($this->brokenFrontMatterRoot)->getPages()[0];
+
+        $this->assertSame('Broken', $page->getTitle());
+        $this->assertSame(2, $page->getSortOrder());
     }
 }

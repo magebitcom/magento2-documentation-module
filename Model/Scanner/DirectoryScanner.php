@@ -30,11 +30,13 @@ class DirectoryScanner implements DirectoryScannerInterface
     /**
      * @param FileDriver $fileDriver
      * @param FileNameParser $fileNameParser
+     * @param FrontMatterReader $frontMatterReader
      * @param LoggerInterface $logger
      */
     public function __construct(
         private readonly FileDriver $fileDriver,
         private readonly FileNameParser $fileNameParser,
+        private readonly FrontMatterReader $frontMatterReader,
         private readonly LoggerInterface $logger
     ) {
     }
@@ -113,16 +115,46 @@ class DirectoryScanner implements DirectoryScannerInterface
                 continue;
             }
 
+            $frontMatter = $this->frontMatterReader->read($entry);
+
             $pages[] = new Page(
                 $relativePrefix . $name,
                 $name,
-                $parsed['label'],
-                $parsed['sortOrder'],
+                $this->title($frontMatter, $parsed['label']),
+                $this->sortOrder($frontMatter, $parsed['sortOrder']),
                 $parsed['isIndex']
             );
         }
 
         return new Category($label, $sortOrder, $this->sortPages($pages), $this->sortCategories($categories));
+    }
+
+    /**
+     * The front matter title, or the file name label when there is no usable one.
+     *
+     * @param array<string,mixed> $frontMatter
+     * @param string $fallback
+     * @return string
+     */
+    private function title(array $frontMatter, string $fallback): string
+    {
+        $title = $frontMatter['title'] ?? null;
+
+        return is_string($title) && trim($title) !== '' ? trim($title) : $fallback;
+    }
+
+    /**
+     * The front matter order, or the numeric file name prefix when there is no usable one.
+     *
+     * @param array<string,mixed> $frontMatter
+     * @param int $fallback
+     * @return int
+     */
+    private function sortOrder(array $frontMatter, int $fallback): int
+    {
+        $sortOrder = $frontMatter['order'] ?? null;
+
+        return is_int($sortOrder) ? $sortOrder : $fallback;
     }
 
     /**
