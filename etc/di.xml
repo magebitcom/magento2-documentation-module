@@ -10,6 +10,8 @@
                 type="Magebit\Documentation\Model\DocumentationTree"/>
     <preference for="Magebit\Documentation\Api\PageRepositoryInterface"
                 type="Magebit\Documentation\Model\PageRepository"/>
+    <preference for="Magebit\Documentation\Api\MarkdownRendererInterface"
+                type="Magebit\Documentation\Model\Markdown\Renderer"/>
 
     <virtualType name="Magebit\Documentation\Model\Config\SchemaLocator"
                  type="Magento\Framework\Config\GenericSchemaLocator">
@@ -38,6 +40,30 @@
         <arguments>
             <argument name="reader" xsi:type="object">Magebit\Documentation\Model\Config\Reader</argument>
             <argument name="cacheId" xsi:type="string">magebit_documentation_config</argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Documentation\Model\Markdown\EnvironmentFactory">
+        <arguments>
+            <argument name="extensions" xsi:type="array">
+                <item name="gfm" xsi:type="object">League\CommonMark\Extension\GithubFlavoredMarkdownExtension</item>
+                <item name="front_matter" xsi:type="object">League\CommonMark\Extension\FrontMatter\FrontMatterExtension</item>
+                <item name="attributes" xsi:type="object">League\CommonMark\Extension\Attributes\AttributesExtension</item>
+                <item name="heading_permalink" xsi:type="object">League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension</item>
+                <item name="table_of_contents" xsi:type="object">League\CommonMark\Extension\TableOfContents\TableOfContentsExtension</item>
+                <item name="external_link" xsi:type="object">League\CommonMark\Extension\ExternalLink\ExternalLinkExtension</item>
+            </argument>
+            <argument name="config" xsi:type="array">
+                <item name="html_input" xsi:type="string">strip</item>
+                <item name="allow_unsafe_links" xsi:type="boolean">false</item>
+                <item name="max_nesting_level" xsi:type="number">50</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Documentation\Model\Markdown\Renderer">
+        <arguments>
+            <argument name="logger" xsi:type="object">Psr\Log\LoggerInterface</argument>
         </arguments>
     </type>
 </config>
