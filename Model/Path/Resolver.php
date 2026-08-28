@@ -82,7 +82,7 @@ class Resolver implements PathResolverInterface
     /**
      * @inheritDoc
      */
-    public function resolveChangelogFile(string $contextModule, string $configuredPath): ?string
+    public function resolveChangelogFile(string $contextModule, string $configuredPath): ?array
     {
         if ($configuredPath === '' || str_contains($configuredPath, "\0")) {
             return null;
@@ -98,7 +98,26 @@ class Resolver implements PathResolverInterface
             return null;
         }
 
-        return $this->resolveFile($modulePath, $relativePath, ['md']);
+        $absolutePath = $this->resolveFile($modulePath, $relativePath, ['md']);
+
+        if ($absolutePath === null) {
+            return null;
+        }
+
+        return ['path' => $absolutePath, 'fileName' => $this->fileName($absolutePath)];
+    }
+
+    /**
+     * Take the bare file name off the end of a path.
+     *
+     * @param string $path
+     * @return string
+     */
+    private function fileName(string $path): string
+    {
+        $separator = strrpos($path, DIRECTORY_SEPARATOR);
+
+        return $separator === false ? $path : substr($path, $separator + 1);
     }
 
     /**
@@ -176,8 +195,7 @@ class Resolver implements PathResolverInterface
      */
     private function hasAllowedExtension(string $path, array $allowedExtensions): bool
     {
-        $separator = strrpos($path, DIRECTORY_SEPARATOR);
-        $fileName = $separator === false ? $path : substr($path, $separator + 1);
+        $fileName = $this->fileName($path);
 
         $dot = strrpos($fileName, '.');
         if ($dot === false) {

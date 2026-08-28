@@ -39,7 +39,7 @@ interface PathResolverInterface
      *
      * @param string $contextModule Module whose documentation.xml declared the path
      * @param string $configuredPath "CHANGELOG.md" or "Vendor_B::docs/CHANGELOG.md"
-     * @return string|null Absolute file path, or null when it does not resolve
+     * @return array{path: string, fileName: string}|null Absolute path and bare file name, or null when refused
      */
-    public function resolveChangelogFile(string $contextModule, string $configuredPath): ?string;
+    public function resolveChangelogFile(string $contextModule, string $configuredPath): ?array;
 }

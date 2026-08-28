@@ -80,13 +80,57 @@ class BuilderTest extends TestCase
         $this->assertSame([], $tree);
     }
 
-    public function testFallsBackToTheModuleNameWhenTitleIsBlank(): void
+    public function testPassesABlankTitleThroughForModuleDocsToFallBackOn(): void
     {
         $tree = $this->build(
             ['Vendor_A' => $this->moduleConfig('', 10, [$this->sectionConfig('Guide', 'Docs', 100)])]
         );
 
         $this->assertSame('Vendor_A', $tree['Vendor_A']->getTitle());
+    }
+
+    public function testSortsAChangelogAgainstDocumentationSectionsByItsOwnSortOrder(): void
+    {
+        $resolver = $this->createMock(PathResolverInterface::class);
+        $resolver->method('resolveSectionRoot')->willReturn('/abs/path');
+        $resolver->method('resolveChangelogFile')
+            ->willReturn(['path' => '/abs/path/docs/CHANGELOG.md', 'fileName' => 'CHANGELOG.md']);
+
+        $sections = $this->builder(
+            ['Vendor_A' => $this->moduleConfig('A', 10, [
+                $this->sectionConfig('Guide', 'Docs', 10),
+                $this->changelogConfig('Changelog', 5),
+            ])],
+            $resolver,
+            $this->scanner()
+        )->build()['Vendor_A']->getSections();
+
+        $this->assertSame(
+            ['Changelog', 'Guide'],
+            array_map(static fn ($section) => $section->getName(), $sections)
+        );
+    }
+
+    public function testKeepsTheSectionsOfAModuleWhoseOtherSectionIsDropped(): void
+    {
+        $resolver = $this->createMock(PathResolverInterface::class);
+        $resolver->method('resolveSectionRoot')->willReturnCallback(
+            static fn (string $module, string $path): ?string => $path === 'Missing' ? null : '/abs/path'
+        );
+
+        $sections = $this->builder(
+            ['Vendor_A' => $this->moduleConfig('A', 10, [
+                $this->sectionConfig('Gone', 'Missing', 10),
+                $this->sectionConfig('Guide', 'Docs', 20),
+            ])],
+            $resolver,
+            $this->scanner()
+        )->build()['Vendor_A']->getSections();
+
+        $this->assertSame(
+            ['Guide'],
+            array_map(static fn ($section) => $section->getName(), $sections)
+        );
     }
 
     public function testBuildsAChangelogFromASingleFileWithoutScanning(): void
@@ -96,7 +140,7 @@ class BuilderTest extends TestCase
         $resolver->expects($this->once())
             ->method('resolveChangelogFile')
             ->with('Vendor_A', 'docs/CHANGELOG.md')
-            ->willReturn('/abs/path/docs/CHANGELOG.md');
+            ->willReturn(['path' => '/abs/path/docs/CHANGELOG.md', 'fileName' => 'CHANGELOG.md']);
 
         $scanner = $this->createMock(DirectoryScannerInterface::class);
         $scanner->expects($this->never())->method('scan');
@@ -112,7 +156,8 @@ class BuilderTest extends TestCase
 
         $pages = $sections[0]->getRoot()->getPages();
         $this->assertCount(1, $pages);
-        $this->assertSame('docs/CHANGELOG.md', $pages[0]->getRelativePath());
+        $this->assertSame('CHANGELOG.md', $pages[0]->getRelativePath());
+        $this->assertSame('CHANGELOG.md', $pages[0]->getFileName());
         $this->assertSame('Release notes', $pages[0]->getTitle());
     }
 
@@ -204,16 +249,30 @@ class BuilderTest extends TestCase
 
     /**
      * @param string $name
+     * @param int $sortOrder
      * @return DocSection
      */
-    private function changelogConfig(string $name): array
+    private function changelogConfig(string $name, int $sortOrder = 1000): array
     {
         return [
             'name' => $name,
             'path' => 'docs/CHANGELOG.md',
             'acl' => null,
-            'sortOrder' => 1000,
+            'sortOrder' => $sortOrder,
             'isChangelog' => true,
         ];
+    }
+
+    /**
+     * A scanner that always finds one page.
+     *
+     * @return DirectoryScannerInterface
+     */
+    private function scanner(): DirectoryScannerInterface
+    {
+        $scanner = $this->createMock(DirectoryScannerInterface::class);
+        $scanner->method('scan')->willReturn(new Category('', 100, [new Page('a.md', 'a.md', 'A', 1, false)], []));
+
+        return $scanner;
     }
 }

@@ -136,12 +136,19 @@ class Builder
      */
     private function buildChangelogRoot(string $moduleName, array $section): ?CategoryInterface
     {
-        if ($this->pathResolver->resolveChangelogFile($moduleName, $section['path']) === null) {
+        $changelog = $this->pathResolver->resolveChangelogFile($moduleName, $section['path']);
+
+        if ($changelog === null) {
             return null;
         }
 
-        // The configured path is the page identifier, so it can be resolved again the same way.
-        $page = new Page($section['path'], $section['path'], $section['name'], self::DEFAULT_SORT_ORDER, true);
+        $page = new Page(
+            $changelog['fileName'],
+            $changelog['fileName'],
+            $section['name'],
+            self::DEFAULT_SORT_ORDER,
+            true
+        );
 
         return new Category('', self::DEFAULT_SORT_ORDER, [$page], []);
     }

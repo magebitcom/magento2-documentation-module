@@ -169,7 +169,7 @@ class ResolverTest extends TestCase
     public function testResolvesChangelogInsideDeclaringModule(): void
     {
         $this->assertSame(
-            $this->root . '/Vendor_A/CHANGELOG.md',
+            ['path' => $this->root . '/Vendor_A/CHANGELOG.md', 'fileName' => 'CHANGELOG.md'],
             $this->resolver->resolveChangelogFile('Vendor_A', 'CHANGELOG.md')
         );
     }
@@ -177,7 +177,7 @@ class ResolverTest extends TestCase
     public function testResolvesChangelogInAnotherModule(): void
     {
         $this->assertSame(
-            $this->root . '/Vendor_B/Docs/CHANGELOG.md',
+            ['path' => $this->root . '/Vendor_B/Docs/CHANGELOG.md', 'fileName' => 'CHANGELOG.md'],
             $this->resolver->resolveChangelogFile('Vendor_A', 'Vendor_B::Docs/CHANGELOG.md')
         );
     }
