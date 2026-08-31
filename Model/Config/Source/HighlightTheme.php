@@ -21,19 +21,6 @@ class HighlightTheme extends ShippedFiles
     private const DARK_SUFFIX = '-dark';
 
     /**
-     * Name of the dark companion shipped for a theme, when there is one.
-     *
-     * @param string $theme
-     * @return string|null
-     */
-    public function getDarkVariant(string $theme): ?string
-    {
-        $dark = $theme . self::DARK_SUFFIX;
-
-        return in_array($dark, $this->getNames(), true) ? $dark : null;
-    }
-
-    /**
      * @inheritDoc
      */
     protected function getDirectory(): string

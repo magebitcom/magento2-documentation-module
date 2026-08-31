@@ -53,16 +53,6 @@ class ModuleConfig
     }
 
     /**
-     * Theme to use while the browser asks for a dark colour scheme, when one ships for the selection.
-     *
-     * @return string|null
-     */
-    public function getDarkHighlightTheme(): ?string
-    {
-        return $this->themes->getDarkVariant($this->getHighlightTheme());
-    }
-
-    /**
      * Whether the documentation search box is shown.
      *
      * @return bool

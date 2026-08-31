@@ -18,7 +18,7 @@
                        showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">
                     <label>Syntax Theme</label>
                     <source_model>Magebit\Documentation\Model\Config\Source\HighlightTheme</source_model>
-                    <comment>Theme for code blocks. A matching dark variant is used in dark mode.</comment>
+                    <comment>Theme for code blocks.</comment>
                 </field>
                 <field id="extra_languages" translate="label comment" type="multiselect" sortOrder="20"
                        showInDefault="1" showInWebsite="0" showInStore="0" canRestore="1">

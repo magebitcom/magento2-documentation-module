@@ -79,28 +79,6 @@ class ModuleConfigTest extends TestCase
         ];
     }
 
-    public function testDarkThemeIsTheCompanionOfTheSelectedTheme(): void
-    {
-        $this->scopeConfig->method('getValue')->willReturn('github');
-        $this->themes->expects($this->once())
-            ->method('getDarkVariant')
-            ->with('github')
-            ->willReturn('github-dark');
-
-        $this->assertSame('github-dark', $this->config->getDarkHighlightTheme());
-    }
-
-    public function testDarkThemeIsNullWhenNoCompanionShips(): void
-    {
-        $this->scopeConfig->method('getValue')->willReturn('default');
-        $this->themes->expects($this->once())
-            ->method('getDarkVariant')
-            ->with('default')
-            ->willReturn(null);
-
-        $this->assertNull($this->config->getDarkHighlightTheme());
-    }
-
     /**
      * @dataProvider searchFlagProvider
      * @param bool $stored

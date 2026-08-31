@@ -85,20 +85,6 @@ class HighlightThemeTest extends TestCase
         );
     }
 
-    public function testKnowsTheDarkCompanionOfAShippedTheme(): void
-    {
-        $this->shipThemes(['github.css', 'github-dark.css', 'default.css']);
-
-        $this->assertSame('github-dark', $this->createSource()->getDarkVariant('github'));
-    }
-
-    public function testHasNoDarkCompanionWhenTheFileIsNotShipped(): void
-    {
-        $this->shipThemes(['github.css', 'github-dark.css', 'default.css']);
-
-        $this->assertNull($this->createSource()->getDarkVariant('default'));
-    }
-
     public function testIgnoresFilesThatAreNotStylesheets(): void
     {
         $this->shipThemes(['github.css', 'README.md', 'notes.txt']);
