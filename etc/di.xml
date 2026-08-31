@@ -61,6 +61,9 @@
                 <item name="html_input" xsi:type="string">strip</item>
                 <item name="allow_unsafe_links" xsi:type="boolean">false</item>
                 <item name="max_nesting_level" xsi:type="number">50</item>
+                <item name="heading_permalink" xsi:type="array">
+                    <item name="symbol" xsi:type="string">#</item>
+                </item>
             </argument>
         </arguments>
     </type>

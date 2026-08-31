@@ -369,10 +369,21 @@ mark {
     background: var(--doc-surface-muted);
 }
 
+.doc-content :is(h1, h2, h3, h4, h5, h6) {
+    position: relative;
+}
+
 .doc-content .heading-permalink {
-    margin-right: 6px;
+    position: absolute;
+    left: -1.1em;
+    opacity: 0;
     text-decoration: none;
-    opacity: 0.35;
+    transition: opacity .12s;
+}
+
+.doc-content :is(h1, h2, h3, h4, h5, h6):hover .heading-permalink,
+.doc-content .heading-permalink:focus-visible {
+    opacity: .45;
 }
 
 .doc-content .heading-permalink:hover {
@@ -519,5 +530,13 @@ mark {
     .documentation-main {
         flex-basis: 100%;
         padding: 16px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .doc-content .heading-permalink,
+    .doc-node-arrow,
+    .doc-copy {
+        transition: none;
     }
 }
