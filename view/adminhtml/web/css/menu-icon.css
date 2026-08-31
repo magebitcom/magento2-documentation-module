@@ -6,5 +6,16 @@
 
 /* The menu XML has no icon attribute. The extra class beats the default glyph of every top item. */
 .admin__menu .level-0.item-documentation > a:before {
-    content: '\e649';
+    content: '';
+    display: block;
+    /* The icon font sized the glyph box, so the size and the spacing are set again here. */
+    width: 2.2rem;
+    height: 2.2rem;
+    margin: 0 auto 0.3rem;
+    font-size: 0;
+    line-height: 0;
+    /* A mask, so the icon takes the menu colour in every state, exactly like the glyphs around it. */
+    background-color: currentColor;
+    -webkit-mask: url('../images/menu-documentation.svg') no-repeat center / contain;
+    mask: url('../images/menu-documentation.svg') no-repeat center / contain;
 }

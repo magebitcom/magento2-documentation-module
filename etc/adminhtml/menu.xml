@@ -3,7 +3,7 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
         <add id="Magebit_Documentation::documentation"
-            title="Documentation"
+            title="Docs"
             sortOrder="1000"
             module="Magebit_Documentation"
             action="magebit_documentation/index/index"
