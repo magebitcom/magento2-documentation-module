@@ -529,7 +529,8 @@
 
     .documentation-main {
         flex-basis: 100%;
-        padding: 16px;
+        /* Keep the left gap wide enough that the biggest heading's # mark stays inside it. */
+        padding: 16px 16px 16px 30px;
     }
 }
 
