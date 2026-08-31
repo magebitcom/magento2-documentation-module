@@ -32,7 +32,8 @@
     "archive": {
         "exclude": [
             "/docs/plan",
-            "/Test"
+            "/Test",
+            "/.github"
         ]
     }
 }

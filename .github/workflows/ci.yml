@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  phpstan:
+    name: PHPStan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@v4
+
+      - name: Allow phpstan/extension-installer composer plugin
+        run: composer config --global allow-plugins.phpstan/extension-installer true
+
+      - name: Set up Magento project with module
+        id: magento
+        uses: magebitcom/setup-magento-module-action@v1
+        with:
+          magento-version: "2.4.7-p3"
+          php-version: "8.3"
+          composer-auth-user: ${{ secrets.MAGENTO_AUTH_USER }}
+          composer-auth-pass: ${{ secrets.MAGENTO_AUTH_PASS }}
+          extra-packages: >-
+            phpstan/phpstan:^2.0
+            bitexpert/phpstan-magento:^0.42
+            phpstan/extension-installer:^1.4
+            phpunit/phpunit:^9.5
+
+      - name: Run PHPStan
+        working-directory: ${{ steps.magento.outputs.project-path }}
+        run: >-
+          vendor/bin/phpstan analyse "${{ steps.magento.outputs.module-path }}"
+          -c "${{ steps.magento.outputs.module-path }}/phpstan.neon"
+          --no-progress --memory-limit=4G
+
+  unit-tests:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@v4
+
+      - name: Allow phpstan/extension-installer composer plugin
+        run: composer config --global allow-plugins.phpstan/extension-installer true
+
+      - name: Set up Magento project with module
+        id: magento
+        uses: magebitcom/setup-magento-module-action@v1
+        with:
+          magento-version: "2.4.7-p3"
+          php-version: "8.3"
+          composer-auth-user: ${{ secrets.MAGENTO_AUTH_USER }}
+          composer-auth-pass: ${{ secrets.MAGENTO_AUTH_PASS }}
+          extra-packages: >-
+            phpstan/phpstan:^2.0
+            bitexpert/phpstan-magento:^0.42
+            phpstan/extension-installer:^1.4
+            phpunit/phpunit:^9.5
+
+      - name: Run unit tests
+        working-directory: ${{ steps.magento.outputs.project-path }}
+        run: >-
+          vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist
+          "${{ steps.magento.outputs.module-path }}/Test/Unit"
+
+  coding-standard:
+    name: Coding standard
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@v4
+
+      - name: Set up Magento project with module
+        id: magento
+        uses: magebitcom/setup-magento-module-action@v1
+        with:
+          magento-version: "2.4.7-p3"
+          php-version: "8.3"
+          composer-auth-user: ${{ secrets.MAGENTO_AUTH_USER }}
+          composer-auth-pass: ${{ secrets.MAGENTO_AUTH_PASS }}
+
+      # This module holds itself to zero warnings as well as zero errors, so both
+      # severities are forced to fail the build rather than only errors.
+      - name: Run PHP_CodeSniffer
+        working-directory: ${{ steps.magento.outputs.project-path }}
+        run: >-
+          vendor/bin/phpcs --standard=Magento2 --extensions=php,phtml
+          --runtime-set ignore_warnings_on_exit 0
+          --runtime-set ignore_errors_on_exit 0
+          "${{ steps.magento.outputs.module-path }}"
+
+  no-external-assets:
+    name: No external assets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout module
+        uses: actions/checkout@v4
+
+      # This module exists because highlight.js was loaded from a CDN and the admin
+      # Content-Security-Policy blocked it. These three checks stop that returning.
+      - name: Fail on any external asset reference
+        run: |
+          hits=$(grep -rn "cdnjs\|https://" view etc \
+            --include='*.xml' --include='*.js' --include='*.phtml' \
+            | grep -v "magebit.com\|magento.com\|w3.org\|urn:magento" \
+            | grep -v "js/vendor/highlight/" || true)
+          if [ -n "$hits" ]; then
+            echo "$hits"
+            echo "::error::External asset reference found. Vendor the file into the module instead."
+            exit 1
+          fi
+
+      - name: Fail if a CSP whitelist has been added
+        run: |
+          if find . -name csp_whitelist.xml | grep -q .; then
+            echo "::error::csp_whitelist.xml would push a CDN allowance onto every install. Vendor the asset instead."
+            exit 1
+          fi
+
+      - name: Verify the vendored highlight.js is unmodified
+        run: |
+          echo "837a6fa5b0c736b52bbde2b2b6190f305da3fc9ed41681db5321507057b5c846  view/adminhtml/web/js/vendor/highlight/highlight.min.js" \
+            | sha256sum --check --strict
