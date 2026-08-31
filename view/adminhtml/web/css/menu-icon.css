@@ -1,0 +1,10 @@
+/**
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
+ */
+
+/* The menu XML has no icon attribute. The extra class beats the default glyph of every top item. */
+.admin__menu .level-0.item-documentation > a:before {
+    content: '\e649';
+}
