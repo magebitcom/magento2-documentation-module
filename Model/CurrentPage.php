@@ -75,8 +75,7 @@ class CurrentPage
     /**
      * Read one request parameter as a string.
      *
-     * The value is used exactly as it arrives: Magento already decoded the query string once, and
-     * decoding it a second time would turn an encoded "%2e%2e%2f" back into a real "../".
+     * Never decoded again: a second decode would turn an encoded "%2e%2e%2f" back into a real "../".
      *
      * @param string $name
      * @return string

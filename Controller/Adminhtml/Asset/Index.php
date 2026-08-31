@@ -29,7 +29,7 @@ class Index extends Action implements HttpGetActionInterface
     public const ADMIN_RESOURCE = 'Magebit_Documentation::documentation';
 
     /**
-     * @var string[]
+     * @var list<string>
      */
     private const ALLOWED_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp'];
 
@@ -143,8 +143,7 @@ class Index extends Action implements HttpGetActionInterface
     /**
      * Read one request parameter as a string.
      *
-     * The value is used exactly as it arrives: Magento already decoded the query string once, and
-     * decoding it a second time would turn an encoded "%2e%2e%2f" back into a real "../".
+     * Never decoded again: a second decode would turn an encoded "%2e%2e%2f" back into a real "../".
      *
      * @param string $name
      * @return string

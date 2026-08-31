@@ -67,8 +67,7 @@ class EnvironmentFactory
     /**
      * Defaults plus the configured overrides, with the nesting limit made an int again.
      *
-     * A di.xml argument has no integer type, so a number reaches PHP as a string, which the
-     * CommonMark config refuses.
+     * A di.xml argument always reaches PHP as a string, which the CommonMark config refuses.
      *
      * @return array<string,mixed>
      */

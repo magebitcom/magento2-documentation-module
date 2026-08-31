@@ -10,6 +10,9 @@ declare(strict_types=1);
 
 namespace Magebit\Documentation\Model\Scanner;
 
+/**
+ * Reads the sort order and label out of a "10-getting-started.md" style name.
+ */
 class FileNameParser
 {
     private const DEFAULT_SORT_ORDER = 1000;

@@ -13,6 +13,9 @@ namespace Magebit\Documentation\Model\Data;
 use Magebit\Documentation\Api\Data\ModuleDocsInterface;
 use Magebit\Documentation\Api\Data\SectionInterface;
 
+/**
+ * The documentation one module registered, with all of its sections.
+ */
 class ModuleDocs implements ModuleDocsInterface
 {
     /**

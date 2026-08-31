@@ -190,7 +190,7 @@ class Resolver implements PathResolverInterface
      * Check the file ending against the whitelist, ignoring letter case.
      *
      * @param string $path
-     * @param string[] $allowedExtensions
+     * @param list<string> $allowedExtensions
      * @return bool
      */
     private function hasAllowedExtension(string $path, array $allowedExtensions): bool

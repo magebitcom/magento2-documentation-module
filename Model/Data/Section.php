@@ -13,6 +13,9 @@ namespace Magebit\Documentation\Model\Data;
 use Magebit\Documentation\Api\Data\CategoryInterface;
 use Magebit\Documentation\Api\Data\SectionInterface;
 
+/**
+ * One named documentation folder of a module, with its ACL and page tree.
+ */
 class Section implements SectionInterface
 {
     /**

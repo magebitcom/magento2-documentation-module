@@ -12,6 +12,9 @@ namespace Magebit\Documentation\Model\Data;
 
 use Magebit\Documentation\Api\Data\PageInterface;
 
+/**
+ * One documentation markdown file.
+ */
 class Page implements PageInterface
 {
     /**

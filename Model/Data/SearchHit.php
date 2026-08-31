@@ -12,6 +12,9 @@ namespace Magebit\Documentation\Model\Data;
 
 use Magebit\Documentation\Api\Data\SearchHitInterface;
 
+/**
+ * One page the search matched, with its score and snippet.
+ */
 class SearchHit implements SearchHitInterface
 {
     /**

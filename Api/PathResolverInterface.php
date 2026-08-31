@@ -29,7 +29,7 @@ interface PathResolverInterface
      *
      * @param string $sectionRoot Absolute directory from resolveSectionRoot()
      * @param string $relativePath Untrusted path from the request
-     * @param string[] $allowedExtensions Lowercase, without the dot
+     * @param list<string> $allowedExtensions Lowercase, without the dot
      * @return string|null Absolute file path, or null when refused
      */
     public function resolveFile(string $sectionRoot, string $relativePath, array $allowedExtensions): ?string;

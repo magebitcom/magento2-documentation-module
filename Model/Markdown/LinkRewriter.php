@@ -73,8 +73,7 @@ class LinkRewriter
     /**
      * Split a URL into the file path and the "#..." that follows it.
      *
-     * The query is dropped: the URL we build carries its own, and an author parameter named
-     * "path" would otherwise override the one we just resolved.
+     * The query is dropped, or an author's own "path" parameter would override the resolved one.
      *
      * @param string $url
      * @return array{string, string}
