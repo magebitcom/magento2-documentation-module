@@ -1,0 +1,75 @@
+<?php
+/**
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
+ */
+
+/** @var \Magento\Backend\Block\Template $block */
+/** @var \Magento\Framework\Escaper $escaper */
+
+/** @var \Magebit\Documentation\ViewModel\Content $content */
+$content = $block->getData('content_view_model');
+/** @var \Magebit\Documentation\ViewModel\Settings $settings */
+$settings = $block->getData('settings_view_model');
+
+$rendered = $content->getRenderedContent();
+$breadcrumb = $content->getBreadcrumb();
+$previous = $content->getPrevious();
+$next = $content->getNext();
+
+// The highlighter marks every fenced block, so this also says whether the bundle is worth loading.
+$hasCodeBlocks = str_contains($rendered, 'data-doc-highlight');
+// A list, never a map: the boot script checks it with Array.isArray.
+// The flags hex-escape the characters that could end the script tag, so the output is safe as it is.
+$languagesJson = json_encode($settings->getExtraLanguages(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?: '[]';
+?>
+<div class="documentation-main">
+    <?php if ($breadcrumb !== []): ?>
+        <nav class="doc-breadcrumb" aria-label="<?= $escaper->escapeHtmlAttr(__('Breadcrumb')) ?>">
+            <ol class="doc-breadcrumb-list">
+                <?php foreach ($breadcrumb as $crumb): ?>
+                    <li class="doc-breadcrumb-item"><?= $escaper->escapeHtml($crumb) ?></li>
+                <?php endforeach; ?>
+            </ol>
+        </nav>
+    <?php endif; ?>
+    <article class="doc-content" data-doc-content>
+        <?php if ($rendered === ''): ?>
+            <p class="doc-empty"><?= $escaper->escapeHtml(__('This documentation page could not be read.')) ?></p>
+        <?php else: ?>
+            <?= /* @noEscape */ $rendered ?>
+        <?php endif; ?>
+    </article>
+    <?php if ($previous !== null || $next !== null): ?>
+        <nav class="doc-pager" aria-label="<?= $escaper->escapeHtmlAttr(__('Documentation pages')) ?>">
+            <?php if ($previous !== null): ?>
+                <a class="doc-pager-link _previous" href="<?= $escaper->escapeUrl($previous['url']) ?>">
+                    <span class="doc-pager-hint"><?= $escaper->escapeHtml(__('Previous')) ?></span>
+                    <span class="doc-pager-title"><?= $escaper->escapeHtml($previous['title']) ?></span>
+                </a>
+            <?php endif; ?>
+            <?php if ($next !== null): ?>
+                <a class="doc-pager-link _next" href="<?= $escaper->escapeUrl($next['url']) ?>">
+                    <span class="doc-pager-hint"><?= $escaper->escapeHtml(__('Next')) ?></span>
+                    <span class="doc-pager-title"><?= $escaper->escapeHtml($next['title']) ?></span>
+                </a>
+            <?php endif; ?>
+        </nav>
+    <?php endif; ?>
+</div>
+<aside class="documentation-toc" data-doc-toc hidden>
+    <h2 class="doc-toc-title"><?= $escaper->escapeHtml(__('On this page')) ?></h2>
+    <div class="doc-toc-body" data-doc-toc-target></div>
+</aside>
+<?php if ($hasCodeBlocks): ?>
+    <script type="text/x-magento-init">
+        {
+            "[data-doc-content]": {
+                "Magebit_Documentation/js/highlight-boot": {
+                    "languages": <?= /* @noEscape */ $languagesJson ?>
+                }
+            }
+        }
+    </script>
+<?php endif; ?>
