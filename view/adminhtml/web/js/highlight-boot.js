@@ -6,11 +6,10 @@
 define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hljs) {
     'use strict';
 
-    var DEFAULT_LANGUAGE_PATH = 'Magebit_Documentation/js/vendor/highlight/languages';
+    var LANGUAGE_PATH = 'Magebit_Documentation/js/vendor/highlight/languages';
 
     return function (config, element) {
         var settings = config || {},
-            basePath = settings.languagePath || DEFAULT_LANGUAGE_PATH,
             extras = Array.isArray(settings.languages) ? settings.languages : [],
             blocks = Array.prototype.slice.call(
                 element.querySelectorAll('pre code[data-doc-highlight]')
@@ -20,7 +19,7 @@ define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hl
             return;
         }
 
-        loadMissingLanguages(blocks, extras, basePath, function () {
+        loadMissingLanguages(blocks, extras, function () {
             highlightInChunks(blocks);
         });
 
@@ -29,10 +28,9 @@ define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hl
          *
          * @param {Array} nodes
          * @param {Array} configured
-         * @param {String} languagePath
          * @param {Function} done
          */
-        function loadMissingLanguages(nodes, configured, languagePath, done) {
+        function loadMissingLanguages(nodes, configured, done) {
             var wanted = {},
                 names,
                 pending;
@@ -54,7 +52,7 @@ define(['Magebit_Documentation/js/vendor/highlight/highlight.min'], function (hl
 
             // One request per language, so a file that fails costs only its own blocks.
             names.forEach(function (name) {
-                require([languagePath + '/' + name + '.min'], finish, function (error) {
+                require([LANGUAGE_PATH + '/' + name + '.min'], finish, function (error) {
                     console.warn(
                         'Magebit_Documentation could not load highlighting for "' + name + '".',
                         error
