@@ -10,77 +10,82 @@ declare(strict_types=1);
 
 namespace Magebit\Documentation\Controller\Adminhtml\Search;
 
-use Magebit\Documentation\Api\SearchServiceInterface;
+use Magebit\Documentation\Api\Data\SearchHitInterface;
+use Magebit\Documentation\Api\SearchIndexInterface;
+use Magebit\Documentation\Model\Markdown\UrlBuilder;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
+use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
- * Documentation search controller
+ * Answers the documentation search box with JSON.
  */
-class Index extends Action
+class Index extends Action implements HttpGetActionInterface
 {
-    /**
-     * ACL resource for documentation access
-     */
     public const ADMIN_RESOURCE = 'Magebit_Documentation::documentation';
 
     /**
      * @param Context $context
      * @param JsonFactory $jsonFactory
-     * @param SearchServiceInterface $searchService
+     * @param SearchIndexInterface $searchIndex
+     * @param UrlBuilder $urlBuilder
+     * @param LoggerInterface $logger
      */
     public function __construct(
         Context $context,
         private readonly JsonFactory $jsonFactory,
-        private readonly SearchServiceInterface $searchService
+        private readonly SearchIndexInterface $searchIndex,
+        private readonly UrlBuilder $urlBuilder,
+        private readonly LoggerInterface $logger
     ) {
         parent::__construct($context);
     }
 
     /**
-     * Execute search and return JSON results
+     * Search the documentation and return the hits the current admin may see.
      *
      * @return Json
      */
     public function execute(): Json
     {
         $result = $this->jsonFactory->create();
-        $query = (string) $this->getRequest()->getParam('q', '');
-
-        // Preserve additional parameters like expand state
-        $additionalParams = [];
-        $expand = $this->getRequest()->getParam('expand');
-        if ($expand) {
-            $additionalParams['expand'] = $expand;
-        }
-        $expandedModules = $this->getRequest()->getParam('expanded_modules');
-        if ($expandedModules) {
-            $additionalParams['expanded_modules'] = $expandedModules;
-        }
+        $query = $this->getRequest()->getParam('q', '');
 
         try {
-            $searchResults = $this->searchService->search($query, $additionalParams);
-            $data = array_map(
-                fn($item) => $item->toArray(),
-                $searchResults
+            $hits = $this->searchIndex->search(is_string($query) ? $query : '');
+            $results = array_map(fn (SearchHitInterface $hit): array => $this->toArray($hit), $hits);
+
+            return $result->setData(['success' => true, 'results' => $results, 'count' => count($results)]);
+        } catch (Throwable $e) {
+            $this->logger->error(
+                'Magebit_Documentation could not search the documentation.',
+                ['exception' => $e->getMessage()]
             );
 
-            $result->setData([
-                'success' => true,
-                'results' => $data,
-                'count' => count($data),
-            ]);
-        } catch (\Exception $e) {
-            $result->setData([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'results' => [],
-                'count' => 0,
-            ]);
+            // The reason stays in the log: the client only learns that the search did not run.
+            return $result->setData(
+                ['success' => false, 'message' => __('Search is temporarily unavailable.')]
+            );
         }
+    }
 
-        return $result;
+    /**
+     * One hit, as the search box needs it.
+     *
+     * @param SearchHitInterface $hit
+     * @return array{title: string, snippet: string, breadcrumb: string, url: string}
+     */
+    private function toArray(SearchHitInterface $hit): array
+    {
+        return [
+            'title' => $hit->getTitle(),
+            'snippet' => $hit->getSnippet(),
+            'breadcrumb' => $hit->getBreadcrumb(),
+            'url' => $this->urlBuilder->page($hit->getModuleName(), $hit->getSectionName(), $hit->getRelativePath()),
+        ];
     }
 }

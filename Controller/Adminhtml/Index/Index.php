@@ -12,17 +12,16 @@ namespace Magebit\Documentation\Controller\Adminhtml\Index;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\Page as BackendPage;
+use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\View\Result\Page;
 use Magento\Framework\View\Result\PageFactory;
 
 /**
- * Documentation index controller
+ * Shows the documentation page itself.
  */
-class Index extends Action
+class Index extends Action implements HttpGetActionInterface
 {
-    /**
-     * ACL resource for documentation access
-     */
     public const ADMIN_RESOURCE = 'Magebit_Documentation::documentation';
 
     /**
@@ -37,16 +36,18 @@ class Index extends Action
     }
 
     /**
-     * Execute documentation page
+     * Show the documentation page.
      *
      * @return Page
      */
     public function execute(): Page
     {
-        $resultPage = $this->resultPageFactory->create();
-        $resultPage->setActiveMenu('Magebit_Documentation::documentation');
-        $resultPage->getConfig()->getTitle()->prepend(__('Documentation'));
+        // The admin page factory adds the layout handles the menu block needs.
+        /** @var BackendPage $page */
+        $page = $this->resultPageFactory->create();
+        $page->setActiveMenu(self::ADMIN_RESOURCE);
+        $page->getConfig()->getTitle()->prepend((string)__('Documentation'));
 
-        return $resultPage;
+        return $page;
     }
 }

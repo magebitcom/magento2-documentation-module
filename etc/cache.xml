@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+/**
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
+ */
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Cache/etc/cache.xsd">
+    <type name="magebit_documentation"
+          translate="label,description"
+          instance="Magebit\Documentation\Model\Cache\Type">
+        <label>Documentation</label>
+        <description>Documentation tree and search index</description>
+    </type>
+</config>

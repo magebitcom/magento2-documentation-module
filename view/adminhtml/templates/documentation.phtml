@@ -1,26 +1,39 @@
 <?php
 /**
- * @var \Magento\Backend\Block\Template $block
- * @var \Magento\Framework\Escaper $escaper
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
  */
-$searchUrl = $block->getUrl('magebit_documentation/search/index');
+
+/** @var \Magento\Backend\Block\Template $block */
+/** @var \Magento\Framework\Escaper $escaper */
+
+/** @var \Magebit\Documentation\ViewModel\Settings $settings */
+$settings = $block->getData('settings_view_model');
+$themeUrl = $block->getViewFileUrl(
+    'Magebit_Documentation::css/highlight/' . $settings->getHighlightTheme() . '.css'
+);
 ?>
-<div class="documentation-container" id="documentation-container">
+<link rel="stylesheet" type="text/css" href="<?= $escaper->escapeUrl($themeUrl) ?>"/>
+<div class="documentation" data-doc-root>
+    <button type="button"
+            class="doc-sidebar-toggle"
+            data-doc-sidebar-toggle
+            aria-expanded="false"
+            aria-controls="doc-sidebar"><?= $escaper->escapeHtml(__('Documentation menu')) ?></button>
     <?= $block->getChildHtml('sidebar') ?>
     <?= $block->getChildHtml('content') ?>
 </div>
-
 <script type="text/x-magento-init">
-{
-    "#documentation-container": {
-        "documentationTree": {}
-    },
-    ".documentation-sidebar": {
-        "documentationSearch": {
-            "searchUrl": "<?= $escaper->escapeJs($searchUrl) ?>",
-            "minQueryLength": 2,
-            "debounceDelay": 300
+    {
+        "[data-doc-root]": {
+            "Magebit_Documentation/js/documentation": {
+                "labels": {
+                    "copy": "<?= $escaper->escapeJs(__('Copy')) ?>",
+                    "copied": "<?= $escaper->escapeJs(__('Copied')) ?>",
+                    "copyFailed": "<?= $escaper->escapeJs(__('Press Ctrl+C')) ?>"
+                }
+            }
         }
     }
-}
 </script>

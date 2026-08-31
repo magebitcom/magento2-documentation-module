@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+/**
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
+ */
+-->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
     <xs:element name="config">
         <xs:complexType>
@@ -31,7 +38,9 @@
     </xs:complexType>
 
     <xs:complexType name="changelogType">
+        <xs:attribute name="name" type="xs:string" use="optional"/>
         <xs:attribute name="path" type="xs:string" use="required"/>
         <xs:attribute name="acl" type="xs:string" use="optional"/>
+        <xs:attribute name="sortOrder" type="xs:integer" use="optional"/>
     </xs:complexType>
 </xs:schema>

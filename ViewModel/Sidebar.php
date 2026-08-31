@@ -10,147 +10,77 @@ declare(strict_types=1);
 
 namespace Magebit\Documentation\ViewModel;
 
-use Magebit\Documentation\Api\DocumentationProviderInterface;
-use Magento\Framework\App\RequestInterface;
-use Magento\Framework\UrlInterface;
+use Magebit\Documentation\Api\Data\ModuleDocsInterface;
+use Magebit\Documentation\Api\DocumentationTreeInterface;
+use Magebit\Documentation\Model\CurrentPage;
+use Magebit\Documentation\Model\Markdown\UrlBuilder;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 
 /**
- * ViewModel for documentation sidebar
+ * Feeds the documentation tree in the sidebar.
  */
 class Sidebar implements ArgumentInterface
 {
     /**
-     * @param DocumentationProviderInterface $documentationProvider
-     * @param RequestInterface $request
-     * @param UrlInterface $urlBuilder
+     * @param DocumentationTreeInterface $tree
+     * @param CurrentPage $currentPage
+     * @param UrlBuilder $urlBuilder
      */
     public function __construct(
-        private readonly DocumentationProviderInterface $documentationProvider,
-        private readonly RequestInterface $request,
-        private readonly UrlInterface $urlBuilder
+        private readonly DocumentationTreeInterface $tree,
+        private readonly CurrentPage $currentPage,
+        private readonly UrlBuilder $urlBuilder
     ) {
     }
 
     /**
-     * Get documentation tree structure
+     * The documentation tree, already filtered to what the current admin may see.
      *
-     * @return array<string, array<string, array>>
+     * @return array<string, ModuleDocsInterface> Keyed by module name, ordered by sort order
      */
-    public function getDocumentationTree(): array
+    public function getTree(): array
     {
-        return $this->documentationProvider->getDocumentationTree();
+        return $this->tree->get();
     }
 
     /**
-     * Get current module from request
+     * The URL of one page in the tree.
      *
-     * @return string|null
-     */
-    public function getCurrentModule(): ?string
-    {
-        return $this->request->getParam('module');
-    }
-
-    /**
-     * Get current feature from request
-     *
-     * @return string|null
-     */
-    public function getCurrentFeature(): ?string
-    {
-        return $this->request->getParam('feature');
-    }
-
-    /**
-     * Get current file from request
-     *
-     * @return string|null
-     */
-    public function getCurrentFile(): ?string
-    {
-        return $this->request->getParam('file');
-    }
-
-    /**
-     * Get URL for documentation file
-     *
-     * @param string $module
-     * @param string $feature
-     * @param string $file
+     * @param string $moduleName
+     * @param string $sectionName
+     * @param string $relativePath
      * @return string
      */
-    public function getDocUrl(string $module, string $feature, string $file): string
+    public function getPageUrl(string $moduleName, string $sectionName, string $relativePath): string
     {
-        $params = [
-            'module' => $module,
-            'feature' => $feature,
-            'file' => $file,
-        ];
-
-        // Preserve expand state if set
-        $expand = $this->request->getParam('expand');
-        if ($expand) {
-            $params['expand'] = $expand;
-        }
-
-        // Preserve expanded modules if set
-        $expandedModules = $this->request->getParam('expanded_modules');
-        if ($expandedModules) {
-            $params['expanded_modules'] = $expandedModules;
-        }
-
-        return $this->urlBuilder->getUrl('magebit_documentation/index/index', $params);
+        return $this->urlBuilder->page($moduleName, $sectionName, $relativePath);
     }
 
     /**
-     * Check if current selection matches given parameters
+     * Whether a tree entry is the page being shown.
      *
-     * @param string $module
-     * @param string $feature
-     * @param string $file
+     * @param string $moduleName
+     * @param string $sectionName
+     * @param string $relativePath
      * @return bool
      */
-    public function isActive(string $module, string $feature, string $file): bool
+    public function isActive(string $moduleName, string $sectionName, string $relativePath): bool
     {
-        $currentModule = $this->getCurrentModule();
-        $currentFeature = $this->getCurrentFeature();
-        $currentFile = $this->getCurrentFile();
+        $current = $this->currentPage->get();
 
-        if (!$currentModule || !$currentFeature || !$currentFile) {
-            $first = $this->documentationProvider->getFirstFile();
-            if ($first) {
-                $currentModule = $first['module'];
-                $currentFeature = $first['feature'];
-                $currentFile = $first['file'];
-            }
-        }
-
-        return $currentModule === $module && $currentFeature === $feature && $currentFile === $file;
+        return $current !== null
+            && $current['module'] === $moduleName
+            && $current['section'] === $sectionName
+            && $current['path'] === $relativePath;
     }
 
     /**
-     * Format file name for display
+     * The page being shown, or nothing when there is no documentation at all.
      *
-     * Strips numeric prefixes (e.g., "1-", "02_") and converts to title case
-     *
-     * @param string $fileName
-     * @return string
+     * @return array{module: string, section: string, path: string}|null
      */
-    public function formatFileName(string $fileName): string
+    public function getCurrent(): ?array
     {
-        $name = pathinfo($fileName, PATHINFO_FILENAME);
-
-        // Strip numeric prefix pattern: "123-" or "123_"
-        if (preg_match('/^\d+[-_](.+)$/', $name, $matches)) {
-            $name = $matches[1];
-        }
-
-        // Index files show as "Overview"
-        if (strtolower($name) === 'index') {
-            return 'Overview';
-        }
-
-        return ucwords(str_replace(['-', '_'], ' ', $name));
+        return $this->currentPage->get();
     }
 }

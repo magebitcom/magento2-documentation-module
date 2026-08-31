@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<ruleset name="Magebit_Documentation">
+    <description>Magento 2 coding standard for Magebit_Documentation.</description>
+    <rule ref="Magento2"/>
+    <exclude-pattern>*/view/adminhtml/web/js/vendor/*</exclude-pattern>
+    <exclude-pattern>*/view/adminhtml/web/css/highlight/*</exclude-pattern>
+    <exclude-pattern>*/Test/Unit/_files/*</exclude-pattern>
+</ruleset>

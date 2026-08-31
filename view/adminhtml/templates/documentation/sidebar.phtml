@@ -1,100 +1,199 @@
 <?php
 /**
- * @var \Magento\Backend\Block\Template $block
- * @var \Magebit\Documentation\ViewModel\Sidebar $viewModel
- * @var \Magento\Framework\Escaper $escaper
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
  */
-$viewModel = $block->getData('view_model');
-$tree = $viewModel->getDocumentationTree();
-?>
-<div class="documentation-sidebar">
-    <div class="doc-search">
-        <input type="text"
-               id="doc-search-input"
-               class="doc-search-input"
-               placeholder="<?= $escaper->escapeHtmlAttr(__('Search documentation...')) ?>"
-               autocomplete="off" />
-        <span class="doc-search-icon"></span>
-        <span class="doc-search-spinner"></span>
-        <button type="button" class="doc-search-clear" title="<?= $escaper->escapeHtmlAttr(__('Clear')) ?>"></button>
-    </div>
-    <div class="doc-search-results" style="display: none;"></div>
-    <div class="doc-sidebar-header">
-        <button type="button" class="doc-expand-all" data-expand-all title="<?= $escaper->escapeHtmlAttr(__('Expand All')) ?>">
-            <span class="expand-all-icon"></span>
-            <span class="expand-all-text"><?= $escaper->escapeHtml(__('Expand All')) ?></span>
-        </button>
-    </div>
-    <div class="doc-tree">
-        <?php if (empty($tree)): ?>
-            <p class="no-documentation"><?= $escaper->escapeHtml(__('No documentation modules found.')) ?></p>
-        <?php else: ?>
-            <?php foreach ($tree as $moduleName => $moduleData): ?>
+
+/** @var \Magento\Backend\Block\Template $block */
+/** @var \Magento\Framework\Escaper $escaper */
+
+/** @var \Magebit\Documentation\ViewModel\Sidebar $sidebar */
+$sidebar = $block->getData('sidebar_view_model');
+/** @var \Magebit\Documentation\ViewModel\Settings $settings */
+$settings = $block->getData('settings_view_model');
+
+$tree = $sidebar->getTree();
+$searchEnabled = $settings->isSearchEnabled();
+$searchUrl = $block->getUrl('magebit_documentation/search/index');
+
+/**
+ * Whether the page being shown sits somewhere inside a category.
+ *
+ * @var callable(\Magebit\Documentation\Api\Data\CategoryInterface, string, string): bool $holdsCurrent
+ */
+$holdsCurrent = function (
+    \Magebit\Documentation\Api\Data\CategoryInterface $category,
+    string $module,
+    string $section
+) use (
+    &$holdsCurrent,
+    $sidebar
+): bool {
+    foreach ($category->getPages() as $page) {
+        if ($sidebar->isActive($module, $section, $page->getRelativePath())) {
+            return true;
+        }
+    }
+
+    foreach ($category->getCategories() as $child) {
+        if ($holdsCurrent($child, $module, $section)) {
+            return true;
+        }
+    }
+
+    return false;
+};
+
+/**
+ * Print one category: its pages first, then each sub-category as a node of its own.
+ *
+ * @var callable(\Magebit\Documentation\Api\Data\CategoryInterface, string, string, string): void $renderCategory
+ */
+$renderCategory = function (
+    \Magebit\Documentation\Api\Data\CategoryInterface $category,
+    string $module,
+    string $section,
+    string $nodeId
+) use (
+    &$renderCategory,
+    $holdsCurrent,
+    $sidebar,
+    $escaper
+): void {
+    $pages = $category->getPages();
+    ?>
+    <?php if ($pages !== []): ?>
+        <ul class="doc-pages">
+            <?php foreach ($pages as $page): ?>
                 <?php
-                $moduleTitle = $moduleData['_title'] ?? $moduleName;
-                $moduleIcon = $moduleData['_icon'] ?? null;
-                $features = array_filter($moduleData, fn($key) => !str_starts_with($key, '_'), ARRAY_FILTER_USE_KEY);
-                if (empty($features)) {
-                    continue;
-                }
+                $path = $page->getRelativePath();
+                $isActive = $sidebar->isActive($module, $section, $path);
+                $pageUrl = $sidebar->getPageUrl($module, $section, $path);
                 ?>
-                <div class="doc-module" data-search-module="<?= $escaper->escapeHtmlAttr(strtolower($moduleTitle)) ?>" data-module-id="<?= $escaper->escapeHtmlAttr($moduleName) ?>">
-                    <div class="doc-module-header collapsed" data-collapse-toggle>
-                        <div class="doc-module-header-content">
-                            <span class="collapse-icon"></span>
-                            <?php if ($moduleIcon): ?>
-                                <?php if (str_ends_with($moduleIcon, '.svg')): ?>
-                                    <img src="<?= $escaper->escapeUrl($block->getViewFileUrl($moduleIcon)) ?>"
-                                         alt=""
-                                         class="doc-module-icon" />
-                                <?php else: ?>
-                                    <img src="<?= $escaper->escapeUrl($block->getViewFileUrl($moduleIcon)) ?>"
-                                         alt=""
-                                         class="doc-module-icon" />
-                                <?php endif; ?>
-                            <?php endif; ?>
-                            <span class="doc-module-name"><?= $escaper->escapeHtml($moduleTitle) ?></span>
-                        </div>
-                        <button type="button" class="doc-module-expand" data-module-expand title="<?= $escaper->escapeHtmlAttr(__('Expand Module')) ?>">
-                            <span class="module-expand-icon"></span>
-                        </button>
-                    </div>
-                    <div class="doc-module-content collapsible-content">
-                        <?php if (isset($moduleData['_changelog'])): ?>
-                            <?php $changelog = $moduleData['_changelog']; ?>
-                            <?php if (isset($changelog['file']) && $changelog['file']): ?>
-                                <div class="doc-changelog" data-search-changelog="changelog">
-                                    <a href="<?= $escaper->escapeUrl($viewModel->getDocUrl($moduleName, '_changelog', $changelog['file'])) ?>"
-                                       class="doc-changelog-link <?= $viewModel->isActive($moduleName, '_changelog', $changelog['file']) ? 'active' : '' ?>">
-                                        <span class="doc-changelog-icon"></span>
-                                        <span class="doc-changelog-name"><?= $escaper->escapeHtml(__('Changelog')) ?></span>
-                                    </a>
-                                </div>
-                            <?php endif; ?>
-                        <?php endif; ?>
-                        <?php foreach ($features as $featureName => $feature): ?>
-                            <div class="doc-feature" data-search-feature="<?= $escaper->escapeHtmlAttr(strtolower($featureName)) ?>">
-                                <div class="doc-feature-header collapsed" data-collapse-toggle>
-                                    <span class="collapse-icon"></span>
-                                    <span class="doc-feature-name"><?= $escaper->escapeHtml($featureName) ?></span>
-                                </div>
-                                <div class="doc-feature-content collapsible-content">
-                                    <?= $block->getLayout()
-                                        ->createBlock(\Magento\Backend\Block\Template::class)
-                                        ->setTemplate('Magebit_Documentation::documentation/sidebar/structure.phtml')
-                                        ->setData('structure', $feature['structure'])
-                                        ->setData('module', $moduleName)
-                                        ->setData('feature', $featureName)
-                                        ->setData('prefix', '')
-                                        ->setData('sidebar_view_model', $viewModel)
-                                        ->toHtml() ?>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    </div>
-                </div>
+                <li class="doc-page">
+                    <a class="doc-page-link<?= $isActive ? ' _active' : '' ?>"
+                       href="<?= $escaper->escapeUrl($pageUrl) ?>"><?= $escaper->escapeHtml($page->getTitle()) ?></a>
+                </li>
             <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+    <?php foreach ($category->getCategories() as $child): ?>
+        <?php
+        $childId = $nodeId . '/' . $child->getLabel();
+        $childExpanded = $holdsCurrent($child, $module, $section);
+        ?>
+        <div class="doc-node">
+            <button type="button"
+                    class="doc-node-toggle _category"
+                    data-doc-toggle="<?= $escaper->escapeHtmlAttr($childId) ?>"
+                    aria-expanded="<?= $childExpanded ? 'true' : 'false' ?>">
+                <span class="doc-node-arrow" aria-hidden="true"></span>
+                <span class="doc-node-label"><?= $escaper->escapeHtml($child->getLabel()) ?></span>
+            </button>
+            <div class="doc-node-panel"<?= $childExpanded ? '' : ' hidden' ?>>
+                <?php $renderCategory($child, $module, $section, $childId); ?>
+            </div>
+        </div>
+    <?php endforeach; ?>
+    <?php
+};
+?>
+<aside class="documentation-sidebar" id="doc-sidebar" data-doc-sidebar>
+    <?php if ($searchEnabled): ?>
+        <div class="doc-search" data-doc-search>
+            <label class="doc-search-label" for="doc-search-input">
+                <?= $escaper->escapeHtml(__('Search documentation')) ?>
+            </label>
+            <input type="text"
+                   id="doc-search-input"
+                   class="doc-search-input"
+                   data-doc-search-input
+                   autocomplete="off"
+                   role="combobox"
+                   aria-autocomplete="list"
+                   aria-expanded="false"
+                   aria-controls="doc-search-listbox"
+                   placeholder="<?= $escaper->escapeHtmlAttr(__('Search documentation (press /)')) ?>"/>
+            <button type="button"
+                    class="doc-search-clear"
+                    data-doc-search-clear
+                    hidden
+                    title="<?= $escaper->escapeHtmlAttr(__('Clear the search')) ?>">
+                <span aria-hidden="true">&times;</span>
+            </button>
+        </div>
+        <div class="doc-search-results" data-doc-search-results hidden></div>
+    <?php endif; ?>
+    <nav class="doc-tree" data-doc-tree aria-label="<?= $escaper->escapeHtmlAttr(__('Documentation')) ?>">
+        <?php if ($tree === []): ?>
+            <p class="doc-empty"><?= $escaper->escapeHtml(__('No documentation is registered yet.')) ?></p>
         <?php endif; ?>
-        <p class="no-search-results" style="display: none;"><?= $escaper->escapeHtml(__('No results found.')) ?></p>
-    </div>
-</div>
+        <?php foreach ($tree as $module): ?>
+            <?php
+            $moduleName = $module->getModuleName();
+            $moduleIcon = $module->getIcon();
+            $moduleExpanded = false;
+
+            foreach ($module->getSections() as $section) {
+                if ($holdsCurrent($section->getRoot(), $moduleName, $section->getName())) {
+                    $moduleExpanded = true;
+                    break;
+                }
+            }
+            ?>
+            <div class="doc-node _module">
+                <button type="button"
+                        class="doc-node-toggle _module"
+                        data-doc-toggle="<?= $escaper->escapeHtmlAttr($moduleName) ?>"
+                        aria-expanded="<?= $moduleExpanded ? 'true' : 'false' ?>">
+                    <span class="doc-node-arrow" aria-hidden="true"></span>
+                    <?php if ($moduleIcon !== null): ?>
+                        <img class="doc-node-icon"
+                             src="<?= $escaper->escapeUrl($block->getViewFileUrl($moduleIcon)) ?>"
+                             alt=""/>
+                    <?php endif; ?>
+                    <span class="doc-node-label"><?= $escaper->escapeHtml($module->getTitle()) ?></span>
+                </button>
+                <div class="doc-node-panel"<?= $moduleExpanded ? '' : ' hidden' ?>>
+                    <?php foreach ($module->getSections() as $section): ?>
+                        <?php
+                        $sectionName = $section->getName();
+                        $sectionId = $moduleName . '|' . $sectionName;
+                        $sectionExpanded = $holdsCurrent($section->getRoot(), $moduleName, $sectionName);
+                        ?>
+                        <div class="doc-node">
+                            <button type="button"
+                                    class="doc-node-toggle _section"
+                                    data-doc-toggle="<?= $escaper->escapeHtmlAttr($sectionId) ?>"
+                                    aria-expanded="<?= $sectionExpanded ? 'true' : 'false' ?>">
+                                <span class="doc-node-arrow" aria-hidden="true"></span>
+                                <span class="doc-node-label"><?= $escaper->escapeHtml($sectionName) ?></span>
+                            </button>
+                            <div class="doc-node-panel"<?= $sectionExpanded ? '' : ' hidden' ?>>
+                                <?php $renderCategory($section->getRoot(), $moduleName, $sectionName, $sectionId); ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endforeach; ?>
+    </nav>
+</aside>
+<?php if ($searchEnabled): ?>
+    <script type="text/x-magento-init">
+        {
+            "[data-doc-sidebar]": {
+                "Magebit_Documentation/js/search": {
+                    "searchUrl": "<?= $escaper->escapeJs($searchUrl) ?>",
+                    "minQueryLength": 2,
+                    "debounceDelay": 300,
+                    "labels": {
+                        "noResults": "<?= $escaper->escapeJs(__('No results found.')) ?>",
+                        "failed": "<?= $escaper->escapeJs(__('The search did not run.')) ?>"
+                    }
+                }
+            }
+        }
+    </script>
+<?php endif; ?>

@@ -1,17 +1,31 @@
 <?xml version="1.0"?>
+<!--
+/**
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
+ */
+-->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
 
-    <preference for="Magebit\Documentation\Api\DocumentationProviderInterface"
-                type="Magebit\Documentation\Model\DocumentationProvider"/>
+    <preference for="Magebit\Documentation\Api\PathResolverInterface"
+                type="Magebit\Documentation\Model\Path\Resolver"/>
+    <preference for="Magebit\Documentation\Api\DirectoryScannerInterface"
+                type="Magebit\Documentation\Model\Scanner\DirectoryScanner"/>
+    <preference for="Magebit\Documentation\Api\DocumentationTreeInterface"
+                type="Magebit\Documentation\Model\DocumentationTree"/>
+    <preference for="Magebit\Documentation\Api\PageRepositoryInterface"
+                type="Magebit\Documentation\Model\PageRepository"/>
     <preference for="Magebit\Documentation\Api\MarkdownRendererInterface"
-                type="Magebit\Documentation\Model\MarkdownRenderer"/>
-    <preference for="Magebit\Documentation\Api\FileSystemScannerInterface"
-                type="Magebit\Documentation\Model\FileSystemScanner"/>
-    <preference for="Magebit\Documentation\Api\SearchServiceInterface"
-                type="Magebit\Documentation\Model\SearchService"/>
+                type="Magebit\Documentation\Model\Markdown\Renderer"/>
+    <preference for="Magebit\Documentation\Api\SyntaxHighlighterInterface"
+                type="Magebit\Documentation\Model\Highlighter\ClientSide"/>
+    <preference for="Magebit\Documentation\Api\SearchIndexInterface"
+                type="Magebit\Documentation\Model\Search\Index"/>
 
-    <virtualType name="Magebit\Documentation\Model\Config\SchemaLocator" type="Magento\Framework\Config\GenericSchemaLocator">
+    <virtualType name="Magebit\Documentation\Model\Config\SchemaLocator"
+                 type="Magento\Framework\Config\GenericSchemaLocator">
         <arguments>
             <argument name="moduleName" xsi:type="string">Magebit_Documentation</argument>
             <argument name="schema" xsi:type="string">documentation.xsd</argument>
@@ -19,7 +33,8 @@
         </arguments>
     </virtualType>
 
-    <virtualType name="Magebit\Documentation\Model\Config\Reader" type="Magento\Framework\Config\Reader\Filesystem">
+    <virtualType name="Magebit\Documentation\Model\Config\Reader"
+                 type="Magento\Framework\Config\Reader\Filesystem">
         <arguments>
             <argument name="converter" xsi:type="object">Magebit\Documentation\Model\Config\Converter</argument>
             <argument name="schemaLocator" xsi:type="object">Magebit\Documentation\Model\Config\SchemaLocator</argument>
@@ -36,6 +51,36 @@
         <arguments>
             <argument name="reader" xsi:type="object">Magebit\Documentation\Model\Config\Reader</argument>
             <argument name="cacheId" xsi:type="string">magebit_documentation_config</argument>
+        </arguments>
+    </type>
+
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="magebitDocumentationList" xsi:type="object">Magebit\Documentation\Console\Command\ListDocumentation</item>
+                <item name="magebitDocumentationValidate" xsi:type="object">Magebit\Documentation\Console\Command\ValidateDocumentation</item>
+            </argument>
+        </arguments>
+    </type>
+
+    <type name="Magebit\Documentation\Model\Markdown\EnvironmentBuilder">
+        <arguments>
+            <argument name="extensions" xsi:type="array">
+                <item name="gfm" xsi:type="object">League\CommonMark\Extension\GithubFlavoredMarkdownExtension</item>
+                <item name="front_matter" xsi:type="object">League\CommonMark\Extension\FrontMatter\FrontMatterExtension</item>
+                <item name="attributes" xsi:type="object">League\CommonMark\Extension\Attributes\AttributesExtension</item>
+                <item name="heading_permalink" xsi:type="object">League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension</item>
+                <item name="table_of_contents" xsi:type="object">League\CommonMark\Extension\TableOfContents\TableOfContentsExtension</item>
+                <item name="external_link" xsi:type="object">League\CommonMark\Extension\ExternalLink\ExternalLinkExtension</item>
+            </argument>
+            <argument name="config" xsi:type="array">
+                <item name="html_input" xsi:type="string">strip</item>
+                <item name="allow_unsafe_links" xsi:type="boolean">false</item>
+                <item name="max_nesting_level" xsi:type="number">50</item>
+                <item name="heading_permalink" xsi:type="array">
+                    <item name="symbol" xsi:type="string">#</item>
+                </item>
+            </argument>
         </arguments>
     </type>
 </config>

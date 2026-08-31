@@ -1,0 +1,10 @@
+parameters:
+    level: 9
+    treatPhpDocTypesAsCertain: false
+    paths:
+        - .
+    excludePaths:
+        - view/adminhtml/web/js/vendor/*
+        - Test/Unit/_files/*
+        - vendor/*
+        - docs/*

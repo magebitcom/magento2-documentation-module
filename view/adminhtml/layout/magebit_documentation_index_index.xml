@@ -1,21 +1,31 @@
 <?xml version="1.0"?>
+<!--
+/**
+ * @copyright Copyright (c) 2025 Magebit, Ltd. (https://magebit.com/)
+ * @author    Magebit <info@magebit.com>
+ * @license   MIT
+ */
+-->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
         <css src="Magebit_Documentation::css/documentation.css"/>
-        <css src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" src_type="url"/>
     </head>
     <body>
         <referenceContainer name="content">
             <block class="Magento\Backend\Block\Template"
                    name="magebit.documentation"
                    template="Magebit_Documentation::documentation.phtml">
+                <arguments>
+                    <argument name="settings_view_model" xsi:type="object">Magebit\Documentation\ViewModel\Settings</argument>
+                </arguments>
                 <block class="Magento\Backend\Block\Template"
                        name="magebit.documentation.sidebar"
                        as="sidebar"
                        template="Magebit_Documentation::documentation/sidebar.phtml">
                     <arguments>
-                        <argument name="view_model" xsi:type="object">Magebit\Documentation\ViewModel\Sidebar</argument>
+                        <argument name="sidebar_view_model" xsi:type="object">Magebit\Documentation\ViewModel\Sidebar</argument>
+                        <argument name="settings_view_model" xsi:type="object">Magebit\Documentation\ViewModel\Settings</argument>
                     </arguments>
                 </block>
                 <block class="Magento\Backend\Block\Template"
@@ -23,7 +33,8 @@
                        as="content"
                        template="Magebit_Documentation::documentation/content.phtml">
                     <arguments>
-                        <argument name="view_model" xsi:type="object">Magebit\Documentation\ViewModel\Content</argument>
+                        <argument name="content_view_model" xsi:type="object">Magebit\Documentation\ViewModel\Content</argument>
+                        <argument name="settings_view_model" xsi:type="object">Magebit\Documentation\ViewModel\Settings</argument>
                     </arguments>
                 </block>
             </block>
