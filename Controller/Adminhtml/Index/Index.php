@@ -12,9 +12,10 @@ namespace Magebit\Documentation\Controller\Adminhtml\Index;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Backend\Model\View\Result\Page;
-use Magento\Backend\Model\View\Result\PageFactory;
+use Magento\Backend\Model\View\Result\Page as BackendPage;
 use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\View\Result\Page;
+use Magento\Framework\View\Result\PageFactory;
 
 /**
  * Shows the documentation page itself.
@@ -41,6 +42,8 @@ class Index extends Action implements HttpGetActionInterface
      */
     public function execute(): Page
     {
+        // The admin page factory adds the layout handles the menu block needs.
+        /** @var BackendPage $page */
         $page = $this->resultPageFactory->create();
         $page->setActiveMenu(self::ADMIN_RESOURCE);
         $page->getConfig()->getTitle()->prepend((string)__('Documentation'));
