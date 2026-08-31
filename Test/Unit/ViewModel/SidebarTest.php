@@ -24,11 +24,24 @@ use PHPUnit\Framework\TestCase;
 
 class SidebarTest extends TestCase
 {
-    public function testExposesTheTreeTheAdminMaySee(): void
+    public function testHandsTheTreeStraightToTheTemplate(): void
     {
         $tree = $this->tree();
 
         $this->assertSame($tree->get(), $this->sidebar([], $tree)->getTree());
+    }
+
+    public function testHasNoCurrentAndNoActivePageWhenThereIsNoDocumentation(): void
+    {
+        $empty = $this->createMock(DocumentationTreeInterface::class);
+        $empty->method('get')->willReturn([]);
+        $empty->method('getFirst')->willReturn(null);
+
+        $sidebar = $this->sidebar([], $empty);
+
+        $this->assertSame([], $sidebar->getTree());
+        $this->assertNull($sidebar->getCurrent());
+        $this->assertFalse($sidebar->isActive('Vendor_A', 'Guide', 'intro.md'));
     }
 
     public function testBuildsThePageUrlOfATreeEntry(): void

@@ -135,6 +135,7 @@ class IndexTest extends TestCase
     public function testReturns404WhenTheFileCannotBeRead(): void
     {
         $fileDriver = $this->createMock(FileDriver::class);
+        $fileDriver->method('stat')->willReturn(['size' => 12]);
         $fileDriver->method('fileGetContents')->willThrowException(new FileSystemException(__('nope')));
 
         $logger = $this->createMock(LoggerInterface::class);
@@ -233,9 +234,69 @@ class IndexTest extends TestCase
         );
 
         $this->assertSame(
-            "default-src 'none'; style-src 'unsafe-inline'",
+            "default-src 'none'; style-src 'unsafe-inline'; sandbox",
             $rendered['headers']['Content-Security-Policy'] ?? null
         );
+    }
+
+    public function testTheSvgPolicySandboxesTheDocumentSoItSurvivesAMergedAdminPolicy(): void
+    {
+        $rendered = $this->render(
+            $this->controller(params: ['module' => 'Vendor_A', 'section' => 'Guide', 'path' => 'diagram.svg'])
+                ->execute()
+        );
+
+        $this->assertStringContainsString(
+            'sandbox',
+            (string)($rendered['headers']['Content-Security-Policy'] ?? '')
+        );
+    }
+
+    public function testReturns404WhenTheResolvedFileHasNoMappedType(): void
+    {
+        $resolver = $this->createMock(PathResolverInterface::class);
+        $resolver->method('resolveSectionRoot')->willReturn(self::SECTION_ROOT);
+        $resolver->method('resolveFile')->willReturn(self::SECTION_ROOT . '/diagram.bmp');
+
+        $fileDriver = $this->createMock(FileDriver::class);
+        $fileDriver->method('stat')->willReturn(['size' => 12]);
+        $fileDriver->expects($this->never())->method('fileGetContents');
+
+        $rendered = $this->render($this->controller(resolver: $resolver, fileDriver: $fileDriver)->execute());
+
+        $this->assertSame(404, $rendered['code']);
+        $this->assertSame([], $rendered['headers']);
+    }
+
+    public function testReturns404ForAFileLargerThanTheCapWithoutReadingIt(): void
+    {
+        $fileDriver = $this->createMock(FileDriver::class);
+        $fileDriver->method('stat')->willReturn(['size' => 8388609]);
+        $fileDriver->expects($this->never())->method('fileGetContents');
+
+        $rendered = $this->render($this->controller(fileDriver: $fileDriver)->execute());
+
+        $this->assertSame(404, $rendered['code']);
+        $this->assertSame([], $rendered['headers']);
+    }
+
+    public function testServesAFileThatIsExactlyAtTheCap(): void
+    {
+        $rendered = $this->render($this->controller(fileDriver: $this->fileDriver(8388608))->execute());
+
+        $this->assertNull($rendered['code']);
+        $this->assertSame('image/png', $rendered['headers']['Content-Type'] ?? null);
+    }
+
+    public function testReturns404WhenTheFileSizeCannotBeTold(): void
+    {
+        $fileDriver = $this->createMock(FileDriver::class);
+        $fileDriver->method('stat')->willReturn([]);
+        $fileDriver->expects($this->never())->method('fileGetContents');
+
+        $rendered = $this->render($this->controller(fileDriver: $fileDriver)->execute());
+
+        $this->assertSame(404, $rendered['code']);
     }
 
     public function testDoesNotSendAContentSecurityPolicyForAnImageThatCannotCarryScript(): void
@@ -351,11 +412,13 @@ class IndexTest extends TestCase
     }
 
     /**
+     * @param int|null $size Size the file reports, the real length of the bytes by default
      * @return FileDriver
      */
-    private function fileDriver(): FileDriver
+    private function fileDriver(?int $size = null): FileDriver
     {
         $fileDriver = $this->createMock(FileDriver::class);
+        $fileDriver->method('stat')->willReturn(['size' => $size ?? strlen(self::BYTES)]);
         $fileDriver->method('fileGetContents')->willReturn(self::BYTES);
 
         return $fileDriver;

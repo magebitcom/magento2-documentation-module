@@ -49,7 +49,12 @@ class Index extends Action implements HttpGetActionInterface
 
     private const SVG_MIME_TYPE = 'image/svg+xml';
 
-    private const SVG_POLICY = "default-src 'none'; style-src 'unsafe-inline'";
+    private const SVG_POLICY = "default-src 'none'; style-src 'unsafe-inline'; sandbox";
+
+    /**
+     * A documentation image larger than this is refused instead of being read into memory.
+     */
+    private const MAX_BYTES = 8388608;
 
     /**
      * @param Context $context
@@ -105,11 +110,23 @@ class Index extends Action implements HttpGetActionInterface
 
         $mimeType = self::MIME_TYPES[$this->extensionOf($file)] ?? null;
 
+        // The resolver already accepted the extension, so this only catches the two lists drifting apart.
         if ($mimeType === null) {
             return $this->notFound();
         }
 
         try {
+            $size = $this->fileDriver->stat($file)['size'] ?? null;
+
+            if (!is_numeric($size) || (float)$size > self::MAX_BYTES) {
+                $this->logger->warning(
+                    'Magebit_Documentation refused a documentation image that is too large.',
+                    ['path' => $file, 'size' => $size]
+                );
+
+                return $this->notFound();
+            }
+
             $contents = $this->fileDriver->fileGetContents($file);
         } catch (FileSystemException $e) {
             $this->logger->warning(
@@ -167,7 +184,7 @@ class Index extends Action implements HttpGetActionInterface
         $result->setHeader('Content-Disposition', 'inline');
         $result->setHeader('X-Content-Type-Options', 'nosniff');
 
-        // An SVG is a document that can carry script, so the browser is told to run nothing in it.
+        // An SVG can carry script. "sandbox" still holds if Magento_Csp prepends its own directives.
         if ($mimeType === self::SVG_MIME_TYPE) {
             $result->setHeader('Content-Security-Policy', self::SVG_POLICY);
         }
