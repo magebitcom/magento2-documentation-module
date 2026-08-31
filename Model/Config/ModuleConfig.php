@@ -10,6 +10,7 @@ declare(strict_types=1);
 
 namespace Magebit\Documentation\Model\Config;
 
+use Magebit\Documentation\Model\Config\Source\HighlightLanguage;
 use Magebit\Documentation\Model\Config\Source\HighlightTheme;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 
@@ -29,10 +30,12 @@ class ModuleConfig
     /**
      * @param ScopeConfigInterface $scopeConfig
      * @param HighlightTheme $themes
+     * @param HighlightLanguage $languages
      */
     public function __construct(
         private readonly ScopeConfigInterface $scopeConfig,
-        private readonly HighlightTheme $themes
+        private readonly HighlightTheme $themes,
+        private readonly HighlightLanguage $languages
     ) {
     }
 
@@ -65,6 +68,8 @@ class ModuleConfig
     /**
      * Language bundles to load on top of the ones the core highlight.js file already knows.
      *
+     * A language that no longer ships is ignored, so an upgrade cannot leave a link to a missing file.
+     *
      * @return list<string>
      */
     public function getExtraLanguages(): array
@@ -75,12 +80,13 @@ class ModuleConfig
             return [];
         }
 
+        $shipped = $this->languages->getSelectableNames();
         $languages = [];
 
         foreach (explode(',', $stored) as $language) {
             $language = trim($language);
 
-            if ($language !== '' && !in_array($language, $languages, true)) {
+            if (in_array($language, $shipped, true) && !in_array($language, $languages, true)) {
                 $languages[] = $language;
             }
         }

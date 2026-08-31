@@ -11,6 +11,7 @@ declare(strict_types=1);
 namespace Magebit\Documentation\Test\Unit\Model\Config;
 
 use Magebit\Documentation\Model\Config\ModuleConfig;
+use Magebit\Documentation\Model\Config\Source\HighlightLanguage;
 use Magebit\Documentation\Model\Config\Source\HighlightTheme;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -31,6 +32,12 @@ class ModuleConfigTest extends TestCase
     private HighlightTheme&MockObject $themes;
 
     /**
+     * @var HighlightLanguage&MockObject
+     */
+    // phpcs:ignore Magento2.Commenting.ClassPropertyPHPDocFormatting
+    private HighlightLanguage&MockObject $languages;
+
+    /**
      * @var ModuleConfig
      */
     private ModuleConfig $config;
@@ -41,7 +48,10 @@ class ModuleConfigTest extends TestCase
         $this->themes = $this->createMock(HighlightTheme::class);
         $this->themes->method('getSelectableNames')->willReturn(['default', 'github']);
 
-        $this->config = new ModuleConfig($this->scopeConfig, $this->themes);
+        $this->languages = $this->createMock(HighlightLanguage::class);
+        $this->languages->method('getSelectableNames')->willReturn(['dockerfile', 'nginx', 'twig']);
+
+        $this->config = new ModuleConfig($this->scopeConfig, $this->themes, $this->languages);
     }
 
     public function testHighlightThemeComesFromTheAppearanceGroup(): void
@@ -119,6 +129,24 @@ class ModuleConfigTest extends TestCase
         $this->scopeConfig->method('getValue')->willReturn(' nginx , ,twig ,nginx');
 
         $this->assertSame(['nginx', 'twig'], $this->config->getExtraLanguages());
+    }
+
+    public function testExtraLanguagesDropsOnesThatNoLongerShip(): void
+    {
+        $this->scopeConfig->method('getValue')->willReturn('nginx,perl,twig');
+
+        $this->assertSame(['nginx', 'twig'], $this->config->getExtraLanguages());
+    }
+
+    public function testExtraLanguagesIsEmptyWhenNothingShipsAnyMore(): void
+    {
+        $languages = $this->createMock(HighlightLanguage::class);
+        $languages->method('getSelectableNames')->willReturn([]);
+        $config = new ModuleConfig($this->scopeConfig, $this->themes, $languages);
+
+        $this->scopeConfig->method('getValue')->willReturn('nginx,twig');
+
+        $this->assertSame([], $config->getExtraLanguages());
     }
 
     /**
