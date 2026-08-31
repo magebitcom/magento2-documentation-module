@@ -19,7 +19,8 @@ $themeUrl = $block->getViewFileUrl(
     <button type="button"
             class="doc-sidebar-toggle"
             data-doc-sidebar-toggle
-            aria-expanded="false"><?= $escaper->escapeHtml(__('Documentation menu')) ?></button>
+            aria-expanded="false"
+            aria-controls="doc-sidebar"><?= $escaper->escapeHtml(__('Documentation menu')) ?></button>
     <?= $block->getChildHtml('sidebar') ?>
     <?= $block->getChildHtml('content') ?>
 </div>

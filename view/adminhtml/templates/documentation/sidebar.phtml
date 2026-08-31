@@ -99,7 +99,7 @@ $renderCategory = function (
     <?php
 };
 ?>
-<aside class="documentation-sidebar" data-doc-sidebar>
+<aside class="documentation-sidebar" id="doc-sidebar" data-doc-sidebar>
     <?php if ($searchEnabled): ?>
         <div class="doc-search" data-doc-search>
             <label class="doc-search-label" for="doc-search-input">
@@ -110,6 +110,10 @@ $renderCategory = function (
                    class="doc-search-input"
                    data-doc-search-input
                    autocomplete="off"
+                   role="combobox"
+                   aria-autocomplete="list"
+                   aria-expanded="false"
+                   aria-controls="doc-search-listbox"
                    placeholder="<?= $escaper->escapeHtmlAttr(__('Search documentation (press /)')) ?>"/>
             <button type="button"
                     class="doc-search-clear"

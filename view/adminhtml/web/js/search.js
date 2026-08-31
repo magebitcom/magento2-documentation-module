@@ -158,9 +158,11 @@ define([], function () {
 
             list = document.createElement('ul');
             list.className = 'doc-search-list';
+            list.id = 'doc-search-listbox';
+            list.setAttribute('role', 'listbox');
 
-            hits.forEach(function (hit) {
-                list.appendChild(resultItem(hit, query));
+            hits.forEach(function (hit, index) {
+                list.appendChild(resultItem(hit, query, index));
             });
 
             show(list);
@@ -173,9 +175,10 @@ define([], function () {
          *
          * @param {Object} hit
          * @param {String} query
+         * @param {Number} index
          * @return {HTMLElement}
          */
-        function resultItem(hit, query) {
+        function resultItem(hit, query, index) {
             var item = document.createElement('li'),
                 link = document.createElement('a'),
                 title = document.createElement('span'),
@@ -183,8 +186,12 @@ define([], function () {
                 snippet = document.createElement('span');
 
             item.className = 'doc-search-item';
+            item.setAttribute('role', 'presentation');
             link.className = 'doc-search-link';
             link.href = hit.url || '#';
+            link.id = 'doc-search-option-' + index;
+            link.setAttribute('role', 'option');
+            link.setAttribute('aria-selected', 'false');
 
             title.className = 'doc-search-title';
             highlight(title, String(hit.title || ''), query);
@@ -267,6 +274,8 @@ define([], function () {
             tree.hidden = true;
             links = [];
             selected = -1;
+            input.setAttribute('aria-expanded', 'true');
+            input.removeAttribute('aria-activedescendant');
         }
 
         /**
@@ -280,6 +289,8 @@ define([], function () {
             tree.hidden = false;
             links = [];
             selected = -1;
+            input.setAttribute('aria-expanded', 'false');
+            input.removeAttribute('aria-activedescendant');
 
             if (clear) {
                 clear.hidden = input.value === '';
@@ -298,13 +309,16 @@ define([], function () {
 
             if (selected >= 0 && links[selected]) {
                 links[selected].classList.remove(SELECTED_CLASS);
+                links[selected].setAttribute('aria-selected', 'false');
             }
 
             selected = Math.max(0, Math.min(index, links.length - 1));
             links[selected].classList.add(SELECTED_CLASS);
+            links[selected].setAttribute('aria-selected', 'true');
             links[selected].scrollIntoView({
                 block: 'nearest'
             });
+            input.setAttribute('aria-activedescendant', links[selected].id);
         }
 
         /**
