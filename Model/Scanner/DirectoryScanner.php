@@ -19,6 +19,9 @@ use Magento\Framework\Exception\FileSystemException;
 use Magento\Framework\Filesystem\Driver\File as FileDriver;
 use Psr\Log\LoggerInterface;
 
+/**
+ * Walks a documentation directory on disk and turns it into a tree of categories and pages.
+ */
 class DirectoryScanner implements DirectoryScannerInterface
 {
     private const MARKDOWN_EXTENSION = '.md';
@@ -91,8 +94,7 @@ class DirectoryScanner implements DirectoryScannerInterface
         }
 
         foreach ($entries as $entry) {
-            // phpcs:ignore Magento2.Functions.DiscouragedFunction
-            $name = basename($entry);
+            $name = $this->fileName($entry);
             $parsed = $this->fileNameParser->parse($name);
 
             if ($this->fileDriver->isDirectory($entry)) {
@@ -127,6 +129,21 @@ class DirectoryScanner implements DirectoryScannerInterface
         }
 
         return new Category($label, $sortOrder, $this->sortPages($pages), $this->sortCategories($categories));
+    }
+
+    /**
+     * Cut the leading directories off a path the driver returned.
+     *
+     * The driver always hands back "/"-separated paths, whatever the platform.
+     *
+     * @param string $path
+     * @return string
+     */
+    private function fileName(string $path): string
+    {
+        $separator = strrpos($path, '/');
+
+        return $separator === false ? $path : substr($path, $separator + 1);
     }
 
     /**
