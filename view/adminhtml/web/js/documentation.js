@@ -100,14 +100,27 @@ define([], function () {
         }
 
         /**
-         * Open exactly the stored nodes, so a reload shows the tree the admin left behind.
+         * Open the stored nodes plus whatever the server already opened for the current page,
+         * so a reload never hides the page the admin is on.
          *
          * @param {Array} open
          */
         function applyState(open) {
+            var merged = open.slice();
+
             toggles.forEach(function (toggle) {
-                setExpanded(toggle, open.indexOf(toggle.getAttribute('data-doc-toggle')) !== -1);
+                var id = toggle.getAttribute('data-doc-toggle');
+
+                if (isExpanded(toggle) && merged.indexOf(id) === -1) {
+                    merged.push(id);
+                }
             });
+
+            toggles.forEach(function (toggle) {
+                setExpanded(toggle, merged.indexOf(toggle.getAttribute('data-doc-toggle')) !== -1);
+            });
+
+            writeState();
         }
 
         /**
