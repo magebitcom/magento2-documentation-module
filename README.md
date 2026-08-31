@@ -45,10 +45,11 @@ app/code/Vendor/Module/
 </config>
 ```
 
-The tree and the search index are cached, so run `bin/magento cache:clean magebit_documentation` after
-adding, renaming or removing files. Editing the text inside a page shows up straight away, because
-pages are read from disk on every request — but search will keep matching the old text until the
-cache is cleaned.
+Then clear the right cache. **After a `documentation.xml` change, run `bin/magento cache:clean config`** —
+the merged configuration is stored in the config cache, so cleaning `magebit_documentation` alone will
+not pick it up. After adding, renaming or removing a Markdown *file*,
+`bin/magento cache:clean magebit_documentation` is enough. See [Caching](#caching) for the whole
+picture.
 
 ## documentation.xml
 
@@ -59,7 +60,7 @@ cache is cleaned.
 | `name` | yes | Module the sections belong to, e.g. `Vendor_Module`. Groups the sidebar. |
 | `title` | no | Label in the sidebar. Falls back to the module name. |
 | `sortOrder` | no | Position among modules, lower first. Default `100`; ties break on title. |
-| `icon` | no | View-asset path of a menu icon, e.g. `Vendor_Module::images/icon.svg`. |
+| `icon` | no | View-asset path of an icon shown beside the module title **in the documentation sidebar**, e.g. `Vendor_Module::images/icon.svg`. Not the admin menu icon. |
 
 ### `<documentation>`
 
@@ -185,6 +186,11 @@ outside it, or above it via `..`, returns a 404. Allowed types are `png`, `jpg`,
 and `webp`, up to 8 MB. SVGs are served with a restrictive `Content-Security-Policy`, so an SVG that
 pulls in external resources will not render them.
 
+The module `icon` from `documentation.xml` is the other kind of image and follows the opposite rules:
+it is an ordinary static view asset, resolved through `getViewFileUrl()`, so it lives under
+`view/adminhtml/web/` and **does** need `bin/magento setup:static-content:deploy` in production mode.
+Images inside your pages need no deploy; the sidebar icon does.
+
 ### Code blocks
 
 Fenced blocks are highlighted in the browser by a bundled copy of highlight.js. The common languages
@@ -258,14 +264,29 @@ bad `acl` removes it only for restricted roles — so run this in CI.
 
 ## Caching
 
-Everything the viewer builds lives in the `magebit_documentation` cache type, listed as
-**Documentation** under **System → Cache Management**. Entries are also tagged with the config cache,
-so either of these drops them:
+Three separate things are cached, and they are not all cleaned by the same command.
+
+| What | Where it lives | Cleaned by |
+|---|---|---|
+| The merged `documentation.xml` | the **config** cache type | `cache:clean config` |
+| The documentation tree | the `magebit_documentation` cache type, tagged with the config cache | `cache:clean magebit_documentation` **or** `cache:clean config` |
+| The search index | the `magebit_documentation` cache type, tagged with the config cache | `cache:clean magebit_documentation` **or** `cache:clean config` |
+
+Page text is not cached at all — it is read from disk on every request, so an edit inside a page is
+visible immediately. Search will keep matching the old text until the index is rebuilt.
+
+So, in practice:
 
 ```bash
-bin/magento cache:clean magebit_documentation
+# changed a documentation.xml — this is the one that also covers everything else
 bin/magento cache:clean config
+
+# only added, renamed or removed a Markdown file
+bin/magento cache:clean magebit_documentation
 ```
+
+The `magebit_documentation` type is listed as **Documentation** under **System → Cache Management**,
+where it can also be switched off.
 
 ## Extending
 
@@ -341,10 +362,16 @@ The data objects returned by these — `ModuleDocsInterface`, `SectionInterface`
 
 ## Troubleshooting
 
+**Nothing changed after editing `documentation.xml`.** You cleaned the wrong cache. That file is
+merged into the **config** cache: `bin/magento cache:clean config`.
+
 **A section does not appear.** Run `bin/magento magebit:documentation:validate`. If it passes, the
 folder resolved but held no `.md` files, or your role lacks the section's ACL resource.
 
 **Pages are stale after adding a file.** `bin/magento cache:clean magebit_documentation`.
+
+**The sidebar icon does not load.** Unlike page images, it is a static view asset:
+`bin/magento setup:static-content:deploy`.
 
 **A front-matter `order` is ignored.** It was quoted. Write `order: 20`, not `order: "20"`.
 

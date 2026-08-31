@@ -131,9 +131,9 @@ class DocumentationSearch
 }
 ```
 
-The common languages — php, javascript, json, xml, yaml, sql, bash, css, diff, ini, markdown and a few
-dozen more — are built in. `dockerfile`, `nginx` and `twig` ship as separate files and are fetched the
-first time a page needs them.
+The common languages — php, javascript, json, xml, yaml, sql, bash, css, diff, ini, markdown and
+about twenty more — are built in. `dockerfile`, `nginx` and `twig` ship as separate files and are
+fetched the first time a page needs them.
 
 A language nothing knows is shown as plain text and a warning appears in the browser console. Add it
 under **Extra Languages** in the configuration if you want it loaded up front.

@@ -16,6 +16,7 @@ use Magebit\Documentation\Model\Config\Data as ConfigData;
 use Magento\Framework\Acl\AclResource\ProviderInterface;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\ConsoleOutputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
@@ -74,10 +75,12 @@ class ValidateDocumentation extends Command
         }
 
         if ($failures !== []) {
-            $output->writeln('<error>Documentation configuration errors:</error>');
+            // Failures go to stderr, so a CI step that redirects stdout still says why it broke.
+            $errors = $output instanceof ConsoleOutputInterface ? $output->getErrorOutput() : $output;
+            $errors->writeln('<error>Documentation configuration errors:</error>');
 
             foreach ($failures as $failure) {
-                $output->writeln(' - ' . $failure);
+                $errors->writeln(' - ' . $failure);
             }
 
             return Command::FAILURE;

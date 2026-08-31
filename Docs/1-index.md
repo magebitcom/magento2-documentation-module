@@ -21,7 +21,12 @@ already in use on this screen.
 
 1. Create a `Docs/` folder in your module and put a Markdown file in it.
 2. Add an `etc/documentation.xml` naming that folder — see [Registering documentation](2-registering-documentation.md).
-3. Run `bin/magento cache:clean magebit_documentation`.
+3. Run `bin/magento cache:clean config`.
+
+Step 3 has to be `config`, not `magebit_documentation`. The merged `documentation.xml` is kept in the
+config cache, so cleaning the documentation cache on its own will not notice your new file and
+nothing will appear. Once the section exists, adding or renaming a page only needs
+`bin/magento cache:clean magebit_documentation`.
 
 Then read [Writing documentation](3-writing-documentation.md) for the file naming rules, front matter,
 links and images.
@@ -86,4 +91,18 @@ class DocumentationLinks implements ArgumentInterface
 }
 ```
 
-The full list of interfaces is in the module's `README.md`.
+The other contracts work the same way, and all of them live in `Magebit\Documentation\Api`:
+
+| Interface | What it gives you |
+|-----------|-------------------|
+| `DocumentationTreeInterface` | The whole tree, one section, or the first page an admin may see. |
+| `PageRepositoryInterface` | The raw Markdown and the front matter of one page. |
+| `SearchIndexInterface` | Ranked search hits across every section an admin may see. |
+| `MarkdownRendererInterface` | Markdown to HTML, with links and images pointed at this viewer. |
+| `SyntaxHighlighterInterface` | Marks up rendered HTML for the highlighter. |
+| `PathResolverInterface` | Turns a configured path into a real one, refusing anything outside it. |
+| `DirectoryScannerInterface` | Turns a documentation folder into a category tree. |
+
+Take a `<preference>` on any of them to replace the implementation. The value objects they return —
+`ModuleDocsInterface`, `SectionInterface`, `CategoryInterface`, `PageInterface`, `SearchHitInterface` —
+are read-only and live in `Magebit\Documentation\Api\Data`. Full method signatures are in the source.

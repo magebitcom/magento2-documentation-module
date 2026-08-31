@@ -14,7 +14,13 @@ script, no database row.
 </config>
 ```
 
-Run `bin/magento cache:clean magebit_documentation` afterwards. The tree is scanned once and cached.
+Run `bin/magento cache:clean config` afterwards. The merged `documentation.xml` lives in the config
+cache, so that is the command that picks up a change to this file — cleaning `magebit_documentation`
+alone will not. It clears the documentation tree and the search index too, because both are tagged
+with the config cache.
+
+Once the section is registered, adding or renaming a page is a smaller change and
+`bin/magento cache:clean magebit_documentation` covers it.
 
 ## The `<module>` element
 

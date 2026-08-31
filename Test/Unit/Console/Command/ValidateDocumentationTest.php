@@ -149,18 +149,79 @@ class ValidateDocumentationTest extends TestCase
         $this->assertSame(Command::SUCCESS, $this->runCommand([])->getStatusCode());
     }
 
+    public function testWritesFailuresToTheErrorOutput(): void
+    {
+        $resolver = $this->createMock(PathResolverInterface::class);
+        $resolver->method('resolveSectionRoot')->willReturn(null);
+
+        $tester = $this->runCommand(
+            ['Vendor_A' => $this->moduleConfig([$this->sectionConfig('Guide', 'Docs')])],
+            $resolver,
+            separateStderr: true
+        );
+
+        // A CI step that redirects stdout must still be told why the build broke.
+        $this->assertStringContainsString('Vendor_A / Guide', $tester->getErrorOutput());
+        $this->assertStringNotContainsString('Vendor_A / Guide', $tester->getDisplay());
+    }
+
+    public function testReportsBothTheBadPathAndTheBadAclOfOneSection(): void
+    {
+        $resolver = $this->createMock(PathResolverInterface::class);
+        $resolver->method('resolveSectionRoot')->willReturn(null);
+
+        $tester = $this->runCommand(
+            ['Vendor_A' => $this->moduleConfig([
+                $this->sectionConfig('Guide', 'Vendor_B::Docs', 'Vendor_A::typo'),
+            ])],
+            $resolver
+        );
+
+        $display = $tester->getDisplay();
+
+        $this->assertSame(Command::FAILURE, $tester->getStatusCode());
+        $this->assertStringContainsString('Vendor_B::Docs', $display);
+        $this->assertStringContainsString('Vendor_A::typo', $display);
+    }
+
+    public function testSaysWhatItCheckedWhenNothingIsWrong(): void
+    {
+        $tester = $this->runCommand(
+            ['Vendor_A' => $this->moduleConfig([$this->sectionConfig('Guide', 'Docs')])]
+        );
+
+        $this->assertStringContainsString('OK', $tester->getDisplay());
+    }
+
+    public function testSurvivesAResourceNodeWhoseChildrenAreNotAnArray(): void
+    {
+        $tester = $this->runCommand(
+            ['Vendor_A' => $this->moduleConfig([
+                $this->sectionConfig('Guide', 'Docs', self::ACL_RESOURCE),
+            ])],
+            aclResources: [
+                ['id' => 'Magento_Backend::admin', 'children' => 'not an array'],
+                ['id' => self::ACL_RESOURCE, 'children' => []],
+            ]
+        );
+
+        $this->assertSame(Command::SUCCESS, $tester->getStatusCode());
+    }
+
     /**
      * Run the command over one configuration and return the tester holding its output.
      *
      * @param array<string, DocModule> $config
      * @param PathResolverInterface|null $resolver
-     * @param array<int, array<string, mixed>> $aclResources
+     * @param array<int, mixed> $aclResources
+     * @param bool $separateStderr
      * @return CommandTester
      */
     private function runCommand(
         array $config,
         ?PathResolverInterface $resolver = null,
-        array $aclResources = []
+        array $aclResources = [],
+        bool $separateStderr = false
     ): CommandTester {
         $configData = $this->createMock(ConfigData::class);
         $configData->method('get')->willReturn($config);
@@ -176,7 +237,7 @@ class ValidateDocumentationTest extends TestCase
         $provider->method('getAclResources')->willReturn($aclResources);
 
         $tester = new CommandTester(new ValidateDocumentation($configData, $resolver, $provider));
-        $tester->execute([]);
+        $tester->execute([], $separateStderr ? ['capture_stderr_separately' => true] : []);
 
         return $tester;
     }

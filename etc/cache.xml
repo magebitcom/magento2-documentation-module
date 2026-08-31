@@ -5,6 +5,6 @@
           translate="label,description"
           instance="Magebit\Documentation\Model\Cache\Type">
         <label>Documentation</label>
-        <description>Documentation tree, page content and search index</description>
+        <description>Documentation tree and search index</description>
     </type>
 </config>
