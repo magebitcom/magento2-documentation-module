@@ -1,263 +1,355 @@
-# Magebit Documentation Module
+# Magebit_Documentation
 
-A Magento 2 module that provides a centralized documentation viewer in the admin panel. View, search, and navigate module documentation.
+A Magento 2 admin documentation viewer. Any module can drop Markdown files into a folder, register
+that folder in `etc/documentation.xml`, and the pages appear under **Docs** in the admin menu —
+rendered, searchable, and permission-aware.
+
+## Requirements
+
+- PHP 8.1 or newer
+- Magento 2.4 (`magento/framework` ^103.0)
 
 ## Installation
-
-### Via Composer
 
 ```bash
 composer require magebitcom/module-documentation
 bin/magento module:enable Magebit_Documentation
 bin/magento setup:upgrade
+bin/magento cache:flush
 ```
 
-## Requirements
+Open **Docs** in the admin menu. The menu item is top level, not nested under System.
 
-- PHP 8.1 or higher
-- Magento 2.4+
+## Quick start
 
-## Quick Start
-
-### 1. Create Documentation Files
-
-Create a `Docs/` folder in your module with Markdown files:
+Put Markdown files in your module and point a `documentation.xml` at them.
 
 ```
-app/code/Vendor/YourModule/
+app/code/Vendor/Module/
 ├── Docs/
 │   ├── 1-getting-started.md
 │   ├── 2-configuration.md
-│   └── 3-api-reference.md
-├── etc/
-│   └── documentation.xml
-└── ...
+│   └── images/
+│       └── flow.png
+└── etc/
+    └── documentation.xml
 ```
-
-### 2. Register Documentation
-
-Create `etc/documentation.xml` in your module:
 
 ```xml
 <?xml version="1.0"?>
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magebit_Documentation:etc/documentation.xsd">
-    <module name="Vendor_YourModule" title="Your Module" sortOrder="10">
-        <documentation name="Getting Started" path="Docs" sortOrder="10"/>
+    <module name="Vendor_Module" title="My Module" sortOrder="10">
+        <documentation name="Guide" path="Docs" sortOrder="10"/>
     </module>
 </config>
 ```
 
-### 3. Clear Cache
+The tree and the search index are cached, so run `bin/magento cache:clean magebit_documentation` after
+adding, renaming or removing files. Editing the text inside a page shows up straight away, because
+pages are read from disk on every request — but search will keep matching the old text until the
+cache is cleaned.
 
-```bash
-bin/magento cache:flush
+## documentation.xml
+
+### `<module>`
+
+| Attribute | Required | Description |
+|---|---|---|
+| `name` | yes | Module the sections belong to, e.g. `Vendor_Module`. Groups the sidebar. |
+| `title` | no | Label in the sidebar. Falls back to the module name. |
+| `sortOrder` | no | Position among modules, lower first. Default `100`; ties break on title. |
+| `icon` | no | View-asset path of a menu icon, e.g. `Vendor_Module::images/icon.svg`. |
+
+### `<documentation>`
+
+One folder of Markdown pages.
+
+| Attribute | Required | Description |
+|---|---|---|
+| `name` | yes | Section label in the sidebar. Also the key that merges declarations. |
+| `path` | yes | Folder holding the Markdown files. See [Paths](#paths). |
+| `acl` | no | ACL resource an admin must hold to see the section. |
+| `sortOrder` | no | Position among the module's sections, lower first. Default `100`. |
+
+### `<changelog>`
+
+One Markdown *file* rather than a folder — for a `CHANGELOG.md` that already sits in the module root.
+
+```xml
+<module name="Vendor_Module" title="My Module">
+    <documentation name="Guide" path="Docs"/>
+    <changelog path="CHANGELOG.md"/>
+</module>
 ```
 
-### 4. View Documentation
+| Attribute | Required | Description |
+|---|---|---|
+| `path` | yes | Markdown file, relative to the module or written as `Vendor_Other::CHANGELOG.md`. |
+| `name` | no | Section label. Default `Changelog`. |
+| `acl` | no | ACL resource an admin must hold to see the section. |
+| `sortOrder` | no | Position among the module's sections. Default `1000`, so it lands last. |
 
-Navigate to **System → Documentation** in the Magento admin panel.
+### Paths
+
+`path` is resolved against the module that declared it, or against another module when it is written
+as `Vendor_Other::Docs`:
+
+```xml
+<documentation name="Guide" path="Docs"/>
+<documentation name="API"   path="Docs/Api"/>
+<documentation name="Notes" path="Vendor_Other::Docs"/>
+```
+
+A path may not leave the module it resolves against — `../OtherModule/Docs` is refused, and so is any
+`..` that would climb out. Use the `Vendor_Other::` form instead.
+
+A section whose path does not resolve is dropped from the tree without an error, which is what
+`magebit:documentation:validate` catches. A section whose path resolves but whose folder holds no
+Markdown is dropped too; validate passes on that one, so check `magebit:documentation:list` — a
+section missing from that table has an empty folder.
+
+### Adding sections to another module's group
+
+A satellite module can file its own pages under the parent's heading by declaring the parent's name:
+
+```xml
+<!-- Vendor_SubModule/etc/documentation.xml -->
+<module name="Vendor_Module">
+    <documentation name="Sub Module" path="Vendor_SubModule::Docs" sortOrder="40"/>
+</module>
+```
+
+## Writing pages
+
+### File names
+
+- A numeric prefix sets the order and is stripped from the label: `1-getting-started.md` → *Getting Started*.
+- `-` and `_` become spaces, and each word is capitalised.
+- `index.md` and `readme.md` are the section or folder overview: they are labelled **Overview** and sort first.
+- Sub-folders become collapsible categories, named by the same rules. Nesting stops at 10 levels.
+- Files that are not `.md` are not pages. They can still be linked to as images.
+
+### Front matter
+
+An optional YAML block at the very top of a page overrides the two things the file name decides:
+
+```markdown
+---
+title: Getting started with orders
+order: 20
+---
+
+# Getting started
+```
+
+| Key | Type | Effect |
+|---|---|---|
+| `title` | string | Replaces the label derived from the file name. Blank values are ignored. |
+| `order` | integer | Replaces the numeric file-name prefix. |
+
+`order` must be an **unquoted integer**. `order: "20"` is a string, and a string is rejected: the page
+keeps its file-name order and a warning naming the key and the file is written to the system log. Only
+the first 8 KB of a file is read for front matter, so keep the block at the top.
+
+### Markdown
+
+CommonMark with GitHub Flavored Markdown — tables, task lists, strikethrough, autolinks — plus heading
+permalinks and a table of contents. Raw HTML in a page is stripped, and unsafe link schemes are refused.
+
+Headings automatically fill the **On this page** panel beside the content.
+
+### Links between pages
+
+Relative links ending in `.md` are rewritten to point at the other page:
+
+```markdown
+See [configuration](2-configuration.md) and [the API](advanced/1-api.md).
+```
+
+A relative link **without** an extension is left exactly as written — `[see](configuration)` is not
+turned into `configuration.md`. Add the extension.
+
+Absolute URLs, anchors and `mailto:` links pass through untouched.
+
+### Images
+
+Images are served by an admin controller, not by static content, so they do not need a deploy:
+
+```markdown
+![Order flow](images/flow.png)
+```
+
+The path is resolved relative to the page and must stay **inside the section folder** — an image
+outside it, or above it via `..`, returns a 404. Allowed types are `png`, `jpg`, `jpeg`, `gif`, `svg`
+and `webp`, up to 8 MB. SVGs are served with a restrictive `Content-Security-Policy`, so an SVG that
+pulls in external resources will not render them.
+
+### Code blocks
+
+Fenced blocks are highlighted in the browser by a bundled copy of highlight.js. The common languages
+(php, javascript, json, xml, yaml, sql, bash, css, diff, ini, markdown and more) work out of the box.
+`dockerfile`, `nginx` and `twig` ship as separate files and load on demand.
+
+A language the bundle does not know is rendered as plain text and a warning is logged in the browser
+console. To have an extra language ready before the first block that needs it, list it under **Extra
+Languages** in the configuration.
+
+To show a fenced block *inside* a fenced block, wrap the outer one in four backticks.
+
+## Access control
+
+The whole viewer is gated by `Magebit_Documentation::documentation` ("View Documentation"), which sits
+under **System** in **System → Permissions → User Roles**.
+
+Individual sections can require their own resource:
+
+```xml
+<documentation name="Internal" path="Docs/Internal" acl="Vendor_Module::internal_docs"/>
+```
+
+```xml
+<!-- Vendor_Module/etc/acl.xml -->
+<resource id="Magento_Backend::admin">
+    <resource id="Magento_Backend::system">
+        <resource id="Vendor_Module::internal_docs" title="Internal Documentation"/>
+    </resource>
+</resource>
+```
+
+A section an admin may not see is removed from the tree, from search results and from the page and
+image controllers. A module left with no visible section disappears entirely.
+
+Name a resource that no `acl.xml` declares and Magento falls back to the role's blanket permission:
+the section stays visible to a full-access administrator and vanishes for every restricted role. That
+is hard to notice by hand, so `magebit:documentation:validate` checks it for you.
 
 ## Configuration
 
-### Module Attributes
+**Stores → Configuration → Magebit → Documentation**
 
-| Attribute | Required | Description |
-|-----------|----------|-------------|
-| `name` | Yes | Module name (e.g., `Vendor_Module`) |
-| `title` | No | Display title in sidebar (defaults to module name) |
-| `sortOrder` | No | Module position (lower = higher, default: 100) |
-| `icon` | No | Path to icon (e.g., `Vendor_Module::images/icon.svg`) |
+| Field | Path | Description |
+|---|---|---|
+| Syntax Theme | `magebit_documentation/appearance/highlight_theme` | Colour theme for code blocks. |
+| Extra Languages | `magebit_documentation/appearance/extra_languages` | Extra highlight.js bundles loaded on every page. |
+| Enable Search | `magebit_documentation/search/enabled` | Shows the search box above the tree. |
 
-### Documentation Attributes
+## Commands
 
-| Attribute | Required | Description |
-|-----------|----------|-------------|
-| `name` | Yes | Display name in sidebar |
-| `path` | Yes | Path to documentation folder |
-| `acl` | No | ACL resource to restrict access |
-| `sortOrder` | No | Position within module (lower = higher, default: 100) |
-
-## Path Formats
-
-### Relative Path
-```xml
-<documentation name="Guide" path="Docs/Guide"/>
-```
-Relative to the current module directory.
-
-### Module Path (Recommended)
-```xml
-<documentation name="API" path="Vendor_Module::Docs/Api"/>
-```
-Format: `ModuleName::path/to/docs`
-
-### Multiple Documentation Sections
-```xml
-<module name="Vendor_Module" title="My Module" sortOrder="10">
-    <documentation name="Getting Started" path="Docs/GettingStarted" sortOrder="10"/>
-    <documentation name="Configuration" path="Docs/Config" sortOrder="20"/>
-    <documentation name="API Reference" path="Docs/Api" sortOrder="30"/>
-</module>
+```bash
+bin/magento magebit:documentation:list
 ```
 
-## Advanced Features
+Prints every registered section with its module, title, resolved absolute path and page count. It
+reads the tree unfiltered, because the command line has no admin session and an ACL-filtered tree
+would come back empty. A section that does not resolve is already gone from that tree, so it will not
+be listed — which is what the second command is for.
 
-### ACL Protection
-
-Restrict documentation visibility:
-
-```xml
-<documentation 
-    name="Admin Guide" 
-    path="Docs/Admin" 
-    acl="Vendor_Module::admin_documentation"/>
+```bash
+bin/magento magebit:documentation:validate
 ```
 
-Define the ACL resource in `etc/acl.xml`:
+Exits `0` when every configured path resolves and every `acl` attribute names a resource that
+`acl.xml` actually declares. Otherwise it prints one line per problem and exits `1`. It reads the
+merged `documentation.xml` directly, so it still sees the sections the tree has dropped.
 
-```xml
-<acl>
-    <resources>
-        <resource id="Magento_Backend::admin">
-            <resource id="Vendor_Module::admin_documentation" title="Admin Documentation"/>
-        </resource>
-    </resources>
-</acl>
+Neither fault announces itself in the browser — a bad path removes the section for everyone, and a
+bad `acl` removes it only for restricted roles — so run this in CI.
+
+## Caching
+
+Everything the viewer builds lives in the `magebit_documentation` cache type, listed as
+**Documentation** under **System → Cache Management**. Entries are also tagged with the config cache,
+so either of these drops them:
+
+```bash
+bin/magento cache:clean magebit_documentation
+bin/magento cache:clean config
 ```
 
-### Custom Module Icons
+## Extending
 
-Add visual branding with custom icons:
-
-```xml
-<module name="Vendor_Module" icon="Vendor_Module::images/module-icon.svg">
-    <documentation name="Guide" path="Docs"/>
-</module>
-```
-
-Place your SVG icon at: `view/adminhtml/web/images/module-icon.svg`
-
-### File Naming Convention
-
-Use numeric prefixes for ordered navigation:
-
-```
-Docs/
-├── 1-introduction.md       (appears first)
-├── 2-installation.md       (appears second)
-├── 3-configuration.md      (appears third)
-└── advanced/
-    ├── 1-api.md
-    └── 2-troubleshooting.md
-```
-
-## Markdown Support
-
-The module uses [CommonMark](https://commonmark.org/) with GitHub Flavored Markdown extensions.
-
-### Supported Features
-
-- **Headers** (`#`, `##`, `###`, etc.)
-- **Bold** (`**text**`) and *Italic* (`*text*`)
-- **Lists** (ordered and unordered)
-- **Links** (`[text](url)`)
-- **Images** (`![alt](url)`)
-- **Code blocks** (with syntax highlighting)
-- **Tables**
-- **Blockquotes** (`>`)
-- **Horizontal rules** (`---`)
-- **Task lists** (`- [ ]` / `- [x]`)
-- **Strikethrough** (`~~text~~`)
-
-### Example Markdown
-
-```markdown
-# Getting Started
-
-## Installation
-
-Follow these steps:
-
-1. Install the module
-2. Enable it
-3. Clear cache
-
-## Code Example
+The public contracts live in `Magebit\Documentation\Api`. Take a preference on one to replace an
+implementation.
 
 ```php
-$documentation = $this->documentationProvider->getDocumentation('Vendor_Module');
-```
-
-## Important Note
-
-> Always clear cache after modifying documentation.xml
-```
-
-## API
-
-### DocumentationProviderInterface
-
-```php
-<?php
-
-namespace Magebit\Documentation\Api;
-
-interface DocumentationProviderInterface
+interface DocumentationTreeInterface
 {
-    /**
-     * Get all registered documentation
-     *
-     * @return array
-     */
-    public function getDocumentation(): array;
+    /** @return array<string, ModuleDocsInterface> Keyed by module name, ordered by sort order */
+    public function get(): array;
 
-    /**
-     * Get documentation for specific module
-     *
-     * @param string $moduleName
-     * @return array|null
-     */
-    public function getModuleDocumentation(string $moduleName): ?array;
+    public function getSection(string $moduleName, string $sectionName): ?SectionInterface;
+
+    /** @return array{module: ModuleDocsInterface, section: SectionInterface, page: PageInterface}|null */
+    public function getFirst(): ?array;
+}
+
+interface PageRepositoryInterface
+{
+    public function getContent(string $moduleName, string $sectionName, string $relativePath): ?string;
+
+    public function getContentForSection(
+        string $moduleName,
+        SectionInterface $section,
+        string $relativePath
+    ): ?string;
+
+    /** @return array<string, mixed> */
+    public function getFrontMatter(string $moduleName, string $sectionName, string $relativePath): array;
+}
+
+interface SearchIndexInterface
+{
+    /** @return list<SearchHitInterface> Highest score first */
+    public function search(string $query, int $limit = 20): array;
+}
+
+interface MarkdownRendererInterface
+{
+    /** @param array{module:string,section:string,path:string} $context */
+    public function render(string $markdown, array $context): string;
+}
+
+interface SyntaxHighlighterInterface
+{
+    public function decorate(string $html): string;
+}
+
+interface PathResolverInterface
+{
+    public function resolveSectionRoot(string $contextModule, string $configuredPath): ?string;
+
+    /** @param string[] $allowedExtensions Lowercase, without the dot */
+    public function resolveFile(string $sectionRoot, string $relativePath, array $allowedExtensions): ?string;
+
+    /** @return array{path: string, fileName: string}|null */
+    public function resolveChangelogFile(string $contextModule, string $configuredPath): ?array;
+}
+
+interface DirectoryScannerInterface
+{
+    public function scan(string $absoluteRoot): CategoryInterface;
 }
 ```
 
-### SearchServiceInterface
+`DocumentationTreeInterface`, `PageRepositoryInterface::getContent()` and `SearchIndexInterface` are
+all filtered by the current admin's permissions. `PageRepositoryInterface::getContentForSection()` is
+not — it takes an already-resolved section, and the caller owns the authorization check.
 
-```php
-<?php
-
-namespace Magebit\Documentation\Api;
-
-interface SearchServiceInterface
-{
-    /**
-     * Search documentation
-     *
-     * @param string $query
-     * @return \Magebit\Documentation\Api\Data\SearchResultInterface
-     */
-    public function search(string $query): SearchResultInterface;
-}
-```
-
-## Permissions
-
-Grant access to documentation in **System → Permissions → User Roles**:
-
-- **View Documentation**: `Magebit_Documentation::view`
+The data objects returned by these — `ModuleDocsInterface`, `SectionInterface`, `CategoryInterface`,
+`PageInterface`, `SearchHitInterface` — are read-only value objects in `Magebit\Documentation\Api\Data`.
 
 ## Troubleshooting
 
-### Documentation Not Appearing
+**A section does not appear.** Run `bin/magento magebit:documentation:validate`. If it passes, the
+folder resolved but held no `.md` files, or your role lacks the section's ACL resource.
 
-1. Check that `etc/documentation.xml` is valid
-2. Clear cache: `bin/magento cache:flush`
-3. Verify the module is enabled: `bin/magento module:status Magebit_Documentation`
-4. Check file permissions on `Docs/` folder
+**Pages are stale after adding a file.** `bin/magento cache:clean magebit_documentation`.
 
-### Icons Not Displaying
+**A front-matter `order` is ignored.** It was quoted. Write `order: 20`, not `order: "20"`.
 
-1. Verify icon path in `documentation.xml`
-2. Check that SVG file exists at the specified location
-3. Clear static content: `bin/magento setup:static-content:deploy`
+**An image is broken.** It must sit inside the section folder and end in an allowed extension.
+
+## License
+
+MIT. See [LICENSE](LICENSE).

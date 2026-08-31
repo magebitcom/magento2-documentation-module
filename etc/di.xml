@@ -47,6 +47,15 @@
         </arguments>
     </type>
 
+    <type name="Magento\Framework\Console\CommandListInterface">
+        <arguments>
+            <argument name="commands" xsi:type="array">
+                <item name="magebitDocumentationList" xsi:type="object">Magebit\Documentation\Console\Command\ListDocumentation</item>
+                <item name="magebitDocumentationValidate" xsi:type="object">Magebit\Documentation\Console\Command\ValidateDocumentation</item>
+            </argument>
+        </arguments>
+    </type>
+
     <type name="Magebit\Documentation\Model\Markdown\EnvironmentFactory">
         <arguments>
             <argument name="extensions" xsi:type="array">

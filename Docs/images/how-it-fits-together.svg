@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 180" width="720" height="180" role="img" aria-label="documentation.xml and Markdown files are read into a cached tree, which the Docs menu renders">
+    <rect width="720" height="180" fill="#ffffff"/>
+    <g font-family="Helvetica, Arial, sans-serif" font-size="13" text-anchor="middle">
+        <rect x="12" y="30" width="150" height="72" rx="6" fill="#eef4fb" stroke="#4a7ebb" stroke-width="1.5"/>
+        <text x="87" y="58" fill="#1a3b5c" font-weight="bold">documentation.xml</text>
+        <text x="87" y="78" fill="#40566b">names the folders</text>
+
+        <rect x="198" y="30" width="150" height="72" rx="6" fill="#eef4fb" stroke="#4a7ebb" stroke-width="1.5"/>
+        <text x="273" y="58" fill="#1a3b5c" font-weight="bold">Docs/*.md</text>
+        <text x="273" y="78" fill="#40566b">your Markdown pages</text>
+
+        <rect x="384" y="30" width="150" height="72" rx="6" fill="#f5f0e6" stroke="#b58b2a" stroke-width="1.5"/>
+        <text x="459" y="58" fill="#5c4410" font-weight="bold">cached tree</text>
+        <text x="459" y="78" fill="#6b5a40">scanned once, reused</text>
+
+        <rect x="570" y="30" width="138" height="72" rx="6" fill="#eaf5ec" stroke="#4a9160" stroke-width="1.5"/>
+        <text x="639" y="58" fill="#1d4a2c" font-weight="bold">Docs menu</text>
+        <text x="639" y="78" fill="#3d5c47">in the admin panel</text>
+
+        <g stroke="#8a97a3" stroke-width="1.5" fill="none">
+            <path d="M162 66 h30" marker-end="url(#arrow)"/>
+            <path d="M348 66 h30" marker-end="url(#arrow)"/>
+            <path d="M534 66 h30" marker-end="url(#arrow)"/>
+        </g>
+
+        <text x="360" y="146" fill="#6b7680" font-size="12">Clean the magebit_documentation cache after adding, renaming or removing a file.</text>
+    </g>
+    <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a97a3"/>
+        </marker>
+    </defs>
+</svg>
