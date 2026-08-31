@@ -14,7 +14,7 @@ use League\CommonMark\Extension\ExtensionInterface;
 use League\CommonMark\Extension\ExternalLink\ExternalLinkExtension;
 use League\CommonMark\Extension\FrontMatter\FrontMatterExtension;
 use League\CommonMark\Extension\GithubFlavoredMarkdownExtension;
-use Magebit\Documentation\Model\Markdown\EnvironmentFactory;
+use Magebit\Documentation\Model\Markdown\EnvironmentBuilder;
 use Magebit\Documentation\Model\Markdown\LinkRewriter;
 use Magebit\Documentation\Model\Markdown\Renderer;
 use Magebit\Documentation\Model\Markdown\UrlBuilder;
@@ -89,7 +89,7 @@ class RendererTest extends TestCase
         $urlBuilder = $this->createMock(UrlBuilder::class);
         $urlBuilder->method('page')->willThrowException(new \RuntimeException('no url'));
         $this->logger->expects($this->once())->method('error');
-        $renderer = new Renderer(new EnvironmentFactory([], []), new LinkRewriter($urlBuilder), $this->logger);
+        $renderer = new Renderer(new EnvironmentBuilder([], []), new LinkRewriter($urlBuilder), $this->logger);
 
         $this->assertSame('', $renderer->render('[x](other.md)', $this->context('page.md')));
     }
@@ -97,7 +97,7 @@ class RendererTest extends TestCase
     public function testLetsTheInjectedConfigOverrideTheDefaults(): void
     {
         $renderer = new Renderer(
-            new EnvironmentFactory([], ['html_input' => 'allow']),
+            new EnvironmentBuilder([], ['html_input' => 'allow']),
             new LinkRewriter($this->urlBuilder),
             $this->logger
         );
@@ -108,7 +108,7 @@ class RendererTest extends TestCase
     public function testAcceptsTheNumericStringThatDiXmlProducesForTheNestingLimit(): void
     {
         $renderer = new Renderer(
-            new EnvironmentFactory([], ['max_nesting_level' => '50']),
+            new EnvironmentBuilder([], ['max_nesting_level' => '50']),
             new LinkRewriter($this->urlBuilder),
             $this->logger
         );
@@ -146,7 +146,7 @@ class RendererTest extends TestCase
     private function renderer(array $extensions): Renderer
     {
         return new Renderer(
-            new EnvironmentFactory($extensions, []),
+            new EnvironmentBuilder($extensions, []),
             new LinkRewriter($this->urlBuilder),
             $this->logger
         );

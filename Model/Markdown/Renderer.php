@@ -27,12 +27,12 @@ class Renderer implements MarkdownRendererInterface
     private const REWRITE_PRIORITY = -75;
 
     /**
-     * @param EnvironmentFactory $environmentFactory
+     * @param EnvironmentBuilder $environmentBuilder
      * @param LinkRewriter $linkRewriter
      * @param LoggerInterface $logger
      */
     public function __construct(
-        private readonly EnvironmentFactory $environmentFactory,
+        private readonly EnvironmentBuilder $environmentBuilder,
         private readonly LinkRewriter $linkRewriter,
         private readonly LoggerInterface $logger
     ) {
@@ -43,7 +43,7 @@ class Renderer implements MarkdownRendererInterface
      */
     public function render(string $markdown, array $context): string
     {
-        $environment = $this->environmentFactory->create();
+        $environment = $this->environmentBuilder->create();
         $environment->addEventListener(
             DocumentParsedEvent::class,
             function (DocumentParsedEvent $event) use ($context): void {

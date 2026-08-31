@@ -17,7 +17,7 @@ use League\CommonMark\Extension\ExtensionInterface;
 /**
  * Builds the CommonMark environment from the DI-declared extension list.
  */
-class EnvironmentFactory
+class EnvironmentBuilder
 {
     /**
      * Safe defaults, so an environment is never less strict than this even when nothing is configured.

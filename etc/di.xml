@@ -63,7 +63,7 @@
         </arguments>
     </type>
 
-    <type name="Magebit\Documentation\Model\Markdown\EnvironmentFactory">
+    <type name="Magebit\Documentation\Model\Markdown\EnvironmentBuilder">
         <arguments>
             <argument name="extensions" xsi:type="array">
                 <item name="gfm" xsi:type="object">League\CommonMark\Extension\GithubFlavoredMarkdownExtension</item>

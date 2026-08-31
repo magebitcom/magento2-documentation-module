@@ -10,7 +10,7 @@ declare(strict_types=1);
 
 namespace Magebit\Documentation\Test\Unit\Model\Markdown;
 
-use Magebit\Documentation\Model\Markdown\EnvironmentFactory;
+use Magebit\Documentation\Model\Markdown\EnvironmentBuilder;
 use Magebit\Documentation\Model\Markdown\LinkRewriter;
 use Magebit\Documentation\Model\Markdown\Renderer;
 use Magebit\Documentation\Model\Markdown\UrlBuilder;
@@ -36,7 +36,7 @@ class LinkRewriterTest extends TestCase
         );
 
         $this->renderer = new Renderer(
-            new EnvironmentFactory(['gfm' => new GithubFlavoredMarkdownExtension()], []),
+            new EnvironmentBuilder(['gfm' => new GithubFlavoredMarkdownExtension()], []),
             new LinkRewriter($urlBuilder),
             $this->createMock(LoggerInterface::class)
         );
@@ -98,7 +98,7 @@ class LinkRewriterTest extends TestCase
         $urlBuilder = $this->createMock(UrlBuilder::class);
         $urlBuilder->method('page')->willReturn('/admin/doc?module=Vendor_A&section=Guide&path=other.md');
         $renderer = new Renderer(
-            new EnvironmentFactory(['gfm' => new GithubFlavoredMarkdownExtension()], []),
+            new EnvironmentBuilder(['gfm' => new GithubFlavoredMarkdownExtension()], []),
             new LinkRewriter($urlBuilder),
             $this->createMock(LoggerInterface::class)
         );
@@ -238,7 +238,7 @@ class LinkRewriterTest extends TestCase
             ->willReturn('/resolved');
 
         return new Renderer(
-            new EnvironmentFactory(['gfm' => new GithubFlavoredMarkdownExtension()], []),
+            new EnvironmentBuilder(['gfm' => new GithubFlavoredMarkdownExtension()], []),
             new LinkRewriter($urlBuilder),
             $this->createMock(LoggerInterface::class)
         );
