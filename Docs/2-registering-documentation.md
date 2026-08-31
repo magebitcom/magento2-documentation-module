@@ -31,7 +31,7 @@ Groups sections under one heading in the sidebar.
 | `name` | yes | Module the sections belong to, e.g. `Vendor_Module`. |
 | `title` | no | Heading shown in the sidebar. Falls back to the module name. |
 | `sortOrder` | no | Position among modules, lower first. Default `100`; ties break on title. |
-| `icon` | no | View-asset path of an icon, e.g. `Vendor_Module::images/icon.svg`. |
+| `icon` | no | View-asset path of an icon shown beside the module title **in the documentation sidebar**, e.g. `Vendor_Module::images/icon.svg`. Not the admin menu icon. |
 
 ## The `<documentation>` element
 

@@ -340,7 +340,7 @@ interface PathResolverInterface
 {
     public function resolveSectionRoot(string $contextModule, string $configuredPath): ?string;
 
-    /** @param string[] $allowedExtensions Lowercase, without the dot */
+    /** @param list<string> $allowedExtensions Lowercase, without the dot */
     public function resolveFile(string $sectionRoot, string $relativePath, array $allowedExtensions): ?string;
 
     /** @return array{path: string, fileName: string}|null */
@@ -359,6 +359,11 @@ not — it takes an already-resolved section, and the caller owns the authorizat
 
 The data objects returned by these — `ModuleDocsInterface`, `SectionInterface`, `CategoryInterface`,
 `PageInterface`, `SearchHitInterface` — are read-only value objects in `Magebit\Documentation\Api\Data`.
+
+Turning a configured or requested path into a disk path happens only in `Model\Path\Resolver` and
+`Model\Scanner`; reading the bytes of an already-resolved path, through the injected
+`Filesystem\Driver\File`, also happens in `Model\PageRepository`, `Controller\Adminhtml\Asset\Index`
+and `Model\Config\Source\ShippedFiles`.
 
 ## Troubleshooting
 
