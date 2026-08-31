@@ -34,6 +34,15 @@ jobs:
             phpstan/extension-installer:^1.4
             phpunit/phpunit:^9.5
 
+      # PHPStan needs Magento's generated factories, proxies and interceptors. The setup
+      # action only composer-installs the project, so generate them the way Magento does.
+      # Neither command needs a database.
+      - name: Generate Magento's DI code
+        working-directory: ${{ steps.magento.outputs.project-path }}
+        run: |
+          bin/magento module:enable --all --no-interaction
+          bin/magento setup:di:compile --no-interaction
+
       - name: Run PHPStan
         working-directory: ${{ steps.magento.outputs.project-path }}
         run: >-
