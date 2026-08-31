@@ -34,6 +34,36 @@ jobs:
             phpstan/extension-installer:^1.4
             phpunit/phpunit:^9.5
 
+      # bitexpert/phpstan-magento synthesises missing *Factory classes on the fly, but that
+      # path breaks on a project whose generated/ directory is empty, and di:compile needs a
+      # database CI does not have. RawFactory is the one factory this module uses that Magento
+      # does not ship in vendor, so write it where psr-0 will find it.
+      - name: Provide the generated factory PHPStan cannot synthesise
+        working-directory: ${{ steps.magento.outputs.project-path }}
+        run: |
+          dir=generated/code/Magento/Framework/Controller/Result
+          mkdir -p "$dir"
+          cat > "$dir/RawFactory.php" <<'PHP'
+          <?php
+          namespace Magento\Framework\Controller\Result;
+
+          /**
+           * Factory class for @see \Magento\Framework\Controller\Result\Raw
+           */
+          class RawFactory
+          {
+              /**
+               * Create class instance with specified parameters
+               *
+               * @param array $data
+               * @return Raw
+               */
+              public function create(array $data = [])
+              {
+              }
+          }
+          PHP
+
       - name: Run PHPStan
         working-directory: ${{ steps.magento.outputs.project-path }}
         run: >-
