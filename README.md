@@ -434,9 +434,18 @@ A real run then regenerates [CHANGELOG.md](CHANGELOG.md) with [git-cliff](https:
 commits it as `chore(release): release vX.Y.Z`, tags that commit `vX.Y.Z`, pushes both, and publishes
 a GitHub release whose notes are the new section of the changelog.
 
-The push is made by `github-actions[bot]`, so if `master` is protected the bot needs a way through:
-either add a `RELEASE_TOKEN` secret holding a personal access token with **contents: write**, or let
-the branch rule bypass GitHub Actions. Without a protected branch neither is needed.
+If `master` only accepts changes through pull requests, the workflow needs a way past that rule for
+its one changelog commit. Give it a deploy key:
+
+1. Create a key pair: `ssh-keygen -t ed25519 -N "" -f release-key -C "release workflow"`.
+2. Add `release-key.pub` under **Settings → Deploy keys** with **Allow write access** ticked.
+3. Add the private key (`release-key`) as a repository secret named `RELEASE_DEPLOY_KEY`, then delete
+   both files locally.
+4. In **Settings → Rules**, make sure **Deploy keys** is listed as a bypass actor for the rule set that
+   protects `master`.
+
+The push then goes over SSH as that deploy key. Without a protected branch the secret can stay unset
+and the run's own token is used.
 
 Entry formatting lives in [cliff.toml](cliff.toml).
 
