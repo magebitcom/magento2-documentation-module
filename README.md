@@ -365,6 +365,13 @@ Turning a configured or requested path into a disk path happens only in `Model\P
 `Filesystem\Driver\File`, also happens in `Model\PageRepository`, `Controller\Adminhtml\Asset\Index`
 and `Model\Config\Source\ShippedFiles`.
 
+## Screenshots
+
+<img width="2541" height="1226" alt="Screenshot1" src="https://github.com/user-attachments/assets/3f8df35a-5f2f-4084-ad9f-a7295b295bd2" />
+<img width="2541" height="1226" alt="Screenshot2" src="https://github.com/user-attachments/assets/f31faa58-368a-4591-b0c5-fc86292f7a6c" />
+<img width="2541" height="1226" alt="Screenshot3" src="https://github.com/user-attachments/assets/7e0d369d-aaf3-48cb-ab20-9198e339478d" />
+
+
 ## Troubleshooting
 
 **Nothing changed after editing `documentation.xml`.** You cleaned the wrong cache. That file is
