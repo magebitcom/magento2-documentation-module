@@ -72,6 +72,7 @@
                 <item name="heading_permalink" xsi:type="object">League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension</item>
                 <item name="table_of_contents" xsi:type="object">League\CommonMark\Extension\TableOfContents\TableOfContentsExtension</item>
                 <item name="external_link" xsi:type="object">League\CommonMark\Extension\ExternalLink\ExternalLinkExtension</item>
+                <item name="mermaid" xsi:type="object">Magebit\Documentation\Model\Markdown\Mermaid\MermaidExtension</item>
             </argument>
             <argument name="config" xsi:type="array">
                 <item name="html_input" xsi:type="string">strip</item>
