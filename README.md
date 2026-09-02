@@ -156,9 +156,19 @@ the first 8 KB of a file is read for front matter, so keep the block at the top.
 ### Markdown
 
 CommonMark with GitHub Flavored Markdown — tables, task lists, strikethrough, autolinks — plus heading
-permalinks and a table of contents. Raw HTML in a page is stripped, and unsafe link schemes are refused.
+permalinks, footnotes and a table of contents. Raw HTML in a page is stripped, and unsafe link schemes
+are refused. Links that leave the site open in a new tab and carry a small arrow.
 
-Headings automatically fill the **On this page** panel beside the content.
+Headings automatically fill the **On this page** panel beside the content, and the panel follows the
+reader down the page.
+
+GitHub-style callouts work as they do on GitHub — a blockquote opening with `[!NOTE]`, `[!TIP]`,
+`[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` becomes a coloured box with a title:
+
+```markdown
+> [!WARNING]
+> Cleaning the wrong cache is the most common mistake.
+```
 
 ### Links between pages
 
@@ -202,6 +212,16 @@ console. To have an extra language ready before the first block that needs it, l
 Languages** in the configuration.
 
 To show a fenced block *inside* a fenced block, wrap the outer one in four backticks.
+
+### Diagrams
+
+A fenced block with the language `mermaid` is drawn in the browser by a bundled copy of
+[Mermaid](https://mermaid.js.org/) — flowcharts, sequence diagrams, class diagrams, Gantt charts and
+the rest. Nothing is fetched from a CDN, so it works under the admin Content-Security-Policy. Mermaid is
+only loaded on pages that contain a diagram. A diagram Mermaid cannot read keeps its source visible with
+a short message above it.
+
+Clicking an image or a drawn diagram opens it full screen; Escape or another click closes it.
 
 ## Access control
 

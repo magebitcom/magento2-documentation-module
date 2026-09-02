@@ -72,6 +72,8 @@
                 <item name="heading_permalink" xsi:type="object">League\CommonMark\Extension\HeadingPermalink\HeadingPermalinkExtension</item>
                 <item name="table_of_contents" xsi:type="object">League\CommonMark\Extension\TableOfContents\TableOfContentsExtension</item>
                 <item name="external_link" xsi:type="object">League\CommonMark\Extension\ExternalLink\ExternalLinkExtension</item>
+                <item name="footnote" xsi:type="object">League\CommonMark\Extension\Footnote\FootnoteExtension</item>
+                <item name="callout" xsi:type="object">Magebit\Documentation\Model\Markdown\Callout\CalloutExtension</item>
                 <item name="mermaid" xsi:type="object">Magebit\Documentation\Model\Markdown\Mermaid\MermaidExtension</item>
             </argument>
             <argument name="config" xsi:type="array">
@@ -80,6 +82,9 @@
                 <item name="max_nesting_level" xsi:type="number">50</item>
                 <item name="heading_permalink" xsi:type="array">
                     <item name="symbol" xsi:type="string">#</item>
+                </item>
+                <item name="external_link" xsi:type="array">
+                    <item name="html_class" xsi:type="string">doc-external</item>
                 </item>
             </argument>
         </arguments>
