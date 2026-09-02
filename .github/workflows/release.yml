@@ -46,10 +46,11 @@ jobs:
           # version and to list the commits since the last release.
           fetch-depth: 0
           fetch-tags: true
-          # A personal access token is only needed when master is protected, so the
-          # bot may push the changelog commit and the tag. Otherwise the run's own
-          # token is enough.
-          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+          # master only accepts changes through pull requests, and the repository
+          # ruleset lets deploy keys bypass that. So the push below goes over SSH
+          # with a deploy key that has write access. Leave the secret unset on a
+          # repository without such rules and the run's own token is used instead.
+          ssh-key: ${{ secrets.RELEASE_DEPLOY_KEY }}
 
       - name: Write the changelog with the next version in it
         id: changelog
@@ -125,14 +126,18 @@ jobs:
           git add CHANGELOG.md
           git commit -m "chore(release): release ${TAG}"
           git tag -a "${TAG}" -m "${TAG}"
-          # --follow-tags sends the commit and the annotated tag in one push, so
-          # the tag can never end up on the remote without its changelog commit.
-          git push --follow-tags origin HEAD:master
+          # One atomic push: either the commit and the tag both land, or neither
+          # does. Without --atomic a rejected branch push still leaves the tag
+          # behind, pointing at a commit master never gets.
+          if ! git push --atomic origin HEAD:master "refs/tags/${TAG}"; then
+            echo "::error::master rejected the release commit. If the branch is protected, add a deploy key with write access as the RELEASE_DEPLOY_KEY secret (see README, Releasing)."
+            exit 1
+          fi
 
       - name: Publish the GitHub release
         if: ${{ !inputs.dry_run }}
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+          GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.version.outputs.tag }}
         run: >-
           gh release create "${TAG}" --title "${TAG}"
