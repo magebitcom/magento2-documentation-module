@@ -156,9 +156,19 @@ the first 8 KB of a file is read for front matter, so keep the block at the top.
 ### Markdown
 
 CommonMark with GitHub Flavored Markdown — tables, task lists, strikethrough, autolinks — plus heading
-permalinks and a table of contents. Raw HTML in a page is stripped, and unsafe link schemes are refused.
+permalinks, footnotes and a table of contents. Raw HTML in a page is stripped, and unsafe link schemes
+are refused. Links that leave the site open in a new tab and carry a small arrow.
 
-Headings automatically fill the **On this page** panel beside the content.
+Headings automatically fill the **On this page** panel beside the content, and the panel follows the
+reader down the page.
+
+GitHub-style callouts work as they do on GitHub — a blockquote opening with `[!NOTE]`, `[!TIP]`,
+`[!IMPORTANT]`, `[!WARNING]` or `[!CAUTION]` becomes a coloured box with a title:
+
+```markdown
+> [!WARNING]
+> Cleaning the wrong cache is the most common mistake.
+```
 
 ### Links between pages
 
@@ -202,6 +212,16 @@ console. To have an extra language ready before the first block that needs it, l
 Languages** in the configuration.
 
 To show a fenced block *inside* a fenced block, wrap the outer one in four backticks.
+
+### Diagrams
+
+A fenced block with the language `mermaid` is drawn in the browser by a bundled copy of
+[Mermaid](https://mermaid.js.org/) — flowcharts, sequence diagrams, class diagrams, Gantt charts and
+the rest. Nothing is fetched from a CDN, so it works under the admin Content-Security-Policy. Mermaid is
+only loaded on pages that contain a diagram. A diagram Mermaid cannot read keeps its source visible with
+a short message above it.
+
+Clicking an image or a drawn diagram opens it full screen; Escape or another click closes it.
 
 ## Access control
 
@@ -388,6 +408,37 @@ folder resolved but held no `.md` files, or your role lacks the section's ACL re
 **A front-matter `order` is ignored.** It was quoted. Write `order: 20`, not `order: "20"`.
 
 **An image is broken.** It must sit inside the section folder and end in an allowed extension.
+
+## Releasing
+
+Releases are cut by hand. Open the **Actions** tab, pick the **Release** workflow and run it on
+`master` — it refuses to run on any other branch.
+
+The version number comes from the commit messages since the last tag, which are
+[conventional commits](https://www.conventionalcommits.org/):
+
+| Commits since the last tag | Next version |
+|---|---|
+| A breaking change (`feat!:`, or a `BREAKING CHANGE:` footer) | major, `1.2.3` → `2.0.0` |
+| A `feat:` | minor, `1.2.3` → `1.3.0` |
+| Anything else that is listed, such as `fix:`, `perf:`, `refactor:`, `docs:` | patch, `1.2.3` → `1.2.4` |
+| Only housekeeping (`ci`, `chore`, `build`, `test`, `style`) | nothing — the run stops and says so |
+
+Two inputs:
+
+- **bump** — `auto` uses the table above. Pick `patch`, `minor` or `major` to force it instead.
+- **dry_run** — works out the version and the notes, prints both in the run summary and stops. Nothing
+  is committed, tagged or published.
+
+A real run then regenerates [CHANGELOG.md](CHANGELOG.md) with [git-cliff](https://git-cliff.org/),
+commits it as `chore(release): release vX.Y.Z`, tags that commit `vX.Y.Z`, pushes both, and publishes
+a GitHub release whose notes are the new section of the changelog.
+
+The push is made by `github-actions[bot]`, so if `master` is protected the bot needs a way through:
+either add a `RELEASE_TOKEN` secret holding a personal access token with **contents: write**, or let
+the branch rule bypass GitHub Actions. Without a protected branch neither is needed.
+
+Entry formatting lives in [cliff.toml](cliff.toml).
 
 ## License
 

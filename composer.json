@@ -33,7 +33,8 @@
         "exclude": [
             "/docs/plan",
             "/Test",
-            "/.github"
+            "/.github",
+            "/cliff.toml"
         ]
     }
 }

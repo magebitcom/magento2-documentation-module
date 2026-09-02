@@ -66,7 +66,59 @@ autolinks all work. Every heading gets a link of its own, and the headings on a 
 **On this page** panel beside the text.
 
 Raw HTML written into a page is stripped rather than rendered, and links using an unsafe scheme are
-dropped.
+dropped. A link that leaves the site opens in a new tab and carries a small arrow after its text.
+
+## Callouts
+
+A blockquote that opens with one of GitHub's markers becomes a coloured box with a title:
+
+```markdown
+> [!NOTE]
+> Useful background the reader can skip.
+
+> [!TIP]
+> A shortcut or a better way to do it.
+
+> [!IMPORTANT]
+> Something the reader has to know to succeed.
+
+> [!WARNING]
+> Something that can go wrong.
+
+> [!CAUTION]
+> Something that breaks things or loses data.
+```
+
+> [!NOTE]
+> Useful background the reader can skip.
+
+> [!TIP]
+> A shortcut or a better way to do it.
+
+> [!IMPORTANT]
+> Something the reader has to know to succeed.
+
+> [!WARNING]
+> Something that can go wrong.
+
+> [!CAUTION]
+> Something that breaks things or loses data.
+
+Everything the blockquote holds stays inside the box — lists, code and links included. A blockquote
+without a marker, or with a marker nobody knows, is shown as an ordinary quote.
+
+## Footnotes
+
+```markdown
+The index is rebuilt on every cache flush[^1].
+
+[^1]: Only the `magebit_documentation` cache matters here.
+```
+
+The index is rebuilt on every cache flush[^1]. The notes are collected at the end of the page, each
+one linking back to where it was used.
+
+[^1]: Only the `magebit_documentation` cache matters here.
 
 ## Linking to another page
 
@@ -94,6 +146,8 @@ The path is resolved relative to the page, and the file has to stay **inside the
 path pointing above it with `..` is refused with a 404. Allowed types are `png`, `jpg`, `jpeg`, `gif`,
 `svg` and `webp`, up to 8 MB each. An SVG is served under a strict content security policy, so keep it
 self-contained — anything it tries to pull in from elsewhere will not load.
+
+Clicking an image opens it full screen; click again or press Escape to close it.
 
 ## Code blocks
 
@@ -145,3 +199,31 @@ To show a fenced block inside a fenced block, wrap the outer one in four backtic
 echo 'this stays inside the outer block';
 ```
 ````
+
+## Diagrams
+
+A fenced block with the language `mermaid` is drawn in the browser with [Mermaid](https://mermaid.js.org/),
+which ships inside the module — nothing is fetched from the internet.
+
+````markdown
+```mermaid
+flowchart LR
+    Files[Markdown files] --> Scanner --> Tree
+    Tree --> Sidebar
+    Files --> Renderer --> Page
+```
+````
+
+```mermaid
+flowchart LR
+    Files[Markdown files] --> Scanner --> Tree
+    Tree --> Sidebar
+    Files --> Renderer --> Page
+```
+
+Flowcharts, sequence diagrams, class diagrams, state diagrams, entity relationships, Gantt charts and
+the other Mermaid diagram types all work. A diagram that Mermaid cannot read keeps its source visible
+under a short message, so the page is never left with a hole in it. Click a drawn diagram to see it
+full screen.
+
+Mermaid is large, so it is only loaded on pages that contain a diagram.

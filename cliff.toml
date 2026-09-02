@@ -1,0 +1,67 @@
+# git-cliff configuration. Builds CHANGELOG.md from the conventional commit
+# messages in the Git history, and works out the next version number from them.
+# https://git-cliff.org/docs/configuration
+
+[changelog]
+# Written once, at the very top of the file.
+header = """
+# Changelog
+
+Every entry below is generated from this module's conventional commit messages.\
+"""
+
+# One section per release. A backslash at the end of a line swallows the line
+# break, so only the breaks that belong in the Markdown are left in.
+# `previous.version` is empty for the very first tag, so the compare link is
+# only used once there is an earlier release to compare against.
+body = """
+{% set repo = "https://github.com/magebitcom/magento2-documentation-module" %}
+{% if version %}\
+{% if previous.version %}\
+## [{{ version | trim_start_matches(pat="v") }}]({{ repo }}/compare/{{ previous.version }}...{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{% else %}\
+## [{{ version | trim_start_matches(pat="v") }}]({{ repo }}/releases/tag/{{ version }}) - {{ timestamp | date(format="%Y-%m-%d") }}
+{% endif %}\
+{% else %}\
+## [Unreleased]
+{% endif %}\
+{% for group, commits in commits | group_by(attribute="group") %}
+### {{ group | striptags | trim }}
+{% for commit in commits %}- {% if commit.breaking %}**Breaking:** {% endif %}{{ commit.message | split(pat="\n") | first | trim | upper_first }} ([{{ commit.id | truncate(length=7, end="") }}]({{ repo }}/commit/{{ commit.id }}))
+{% endfor %}{% endfor %}\
+"""
+
+# The template already spaces the sections, so leave its whitespace alone.
+trim = false
+
+[git]
+conventional_commits = true
+# Anything that is not a conventional commit is left out of the changelog.
+filter_unconventional = true
+filter_commits = true
+# A breaking change is always listed, even when its type is one of the hidden ones.
+protect_breaking_commits = true
+split_commits = false
+
+# The number in the comment only orders the sections; `striptags` drops it again
+# when the heading is rendered.
+commit_parsers = [
+    { message = "^feat", group = "<!-- 0 -->Features" },
+    { message = "^fix", group = "<!-- 1 -->Bug Fixes" },
+    { message = "^perf", group = "<!-- 2 -->Performance" },
+    { message = "^refactor", group = "<!-- 3 -->Refactoring" },
+    { message = "^docs", group = "<!-- 4 -->Documentation" },
+    # Housekeeping is not worth listing, and on its own it is not worth a release
+    # either — a run with nothing but these commits stops instead of tagging.
+    { message = "^(ci|chore|build|test|style)", skip = true },
+    { message = ".*", skip = true },
+]
+
+tag_pattern = "v[0-9].*"
+topo_order = false
+sort_commits = "newest"
+
+[bump]
+# A feature raises the minor number even while the module is still on 0.x.
+features_always_bump_minor = true
+breaking_always_bump_major = true

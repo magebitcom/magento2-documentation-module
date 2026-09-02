@@ -7,6 +7,9 @@ var config = {
     shim: {
         'Magebit_Documentation/js/vendor/highlight/highlight.min': {
             exports: 'hljs'
+        },
+        'Magebit_Documentation/js/vendor/mermaid/mermaid.min': {
+            exports: 'mermaid'
         }
     }
 };

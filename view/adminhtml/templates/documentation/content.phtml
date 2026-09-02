@@ -20,6 +20,8 @@ $next = $content->getNext();
 
 // The highlighter marks every fenced block, so this also says whether the bundle is worth loading.
 $hasCodeBlocks = str_contains($rendered, 'data-doc-highlight');
+// Same idea for diagrams: mermaid is large, so it is only fetched when a page draws one.
+$hasDiagrams = str_contains($rendered, 'data-doc-mermaid');
 // A list, never a map: the boot script checks it with Array.isArray.
 // The flags hex-escape the characters that could end the script tag, so the output is safe as it is.
 $languagesJson = json_encode($settings->getExtraLanguages(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS) ?: '[]';
@@ -68,6 +70,19 @@ $languagesJson = json_encode($settings->getExtraLanguages(), JSON_HEX_TAG | JSON
             "[data-doc-content]": {
                 "Magebit_Documentation/js/highlight-boot": {
                     "languages": <?= /* @noEscape */ $languagesJson ?>
+                }
+            }
+        }
+    </script>
+<?php endif; ?>
+<?php if ($hasDiagrams): ?>
+    <script type="text/x-magento-init">
+        {
+            "[data-doc-content]": {
+                "Magebit_Documentation/js/mermaid-boot": {
+                    "labels": {
+                        "failed": "<?= $escaper->escapeJs(__('This diagram could not be drawn.')) ?>"
+                    }
                 }
             }
         }

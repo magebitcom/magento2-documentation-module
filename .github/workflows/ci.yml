@@ -120,7 +120,7 @@ jobs:
           hits=$(grep -rn "cdnjs\|https://" view etc \
             --include='*.xml' --include='*.js' --include='*.phtml' \
             | grep -v "magebit.com\|magento.com\|w3.org\|urn:magento" \
-            | grep -v "js/vendor/highlight/" || true)
+            | grep -v "js/vendor/highlight/\|js/vendor/mermaid/" || true)
           if [ -n "$hits" ]; then
             echo "$hits"
             echo "::error::External asset reference found. Vendor the file into the module instead."
@@ -138,3 +138,13 @@ jobs:
         run: |
           echo "837a6fa5b0c736b52bbde2b2b6190f305da3fc9ed41681db5321507057b5c846  view/adminhtml/web/js/vendor/highlight/highlight.min.js" \
             | sha256sum --check --strict
+
+      # Mermaid is the official file wrapped in one line above and one below (see the README next
+      # to it), so the check hashes what sits between those two lines against the npm release.
+      - name: Verify the vendored mermaid is the official file inside its wrapper
+        run: |
+          inner=$(sed '1d;$d' view/adminhtml/web/js/vendor/mermaid/mermaid.min.js | sha256sum | cut -d' ' -f1)
+          if [ "$inner" != "581ed7d74bd9048d0e3a91363927d72ef22942d7722546b27f7cc29e35390eb8" ]; then
+            echo "::error::view/adminhtml/web/js/vendor/mermaid/mermaid.min.js does not hold the official mermaid 11.17.2 build."
+            exit 1
+          fi
