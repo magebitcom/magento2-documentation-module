@@ -2,6 +2,15 @@
 
 Every entry below is generated from this module's conventional commit messages.
 
+## [1.1.0](https://github.com/magebitcom/magento2-documentation-module/compare/v1.0.0...v1.1.0) - 2026-09-02
+
+### Features
+- Add callouts, footnotes, heading tracking, image zoom and print styles ([e417917](https://github.com/magebitcom/magento2-documentation-module/commit/e4179170dcb4bc00439f696e1325c3b6d672b01e))
+- Draw mermaid fences as diagrams with a bundled mermaid.js ([9a483d7](https://github.com/magebitcom/magento2-documentation-module/commit/9a483d7199401c3bc7779bc01a595a4a21f942dc))
+
+### Bug Fixes
+- Push the release with a deploy key and make the commit and tag one atomic push ([77bb99f](https://github.com/magebitcom/magento2-documentation-module/commit/77bb99f646c6c9c4cea78f9ab663e99d129ec431))
+
 ## [1.0.0](https://github.com/magebitcom/magento2-documentation-module/compare/v0.0.1...v1.0.0) - 2026-08-31
 
 ### Features
