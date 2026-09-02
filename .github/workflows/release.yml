@@ -1,0 +1,139 @@
+name: Release
+
+# Releases are cut by hand from the Actions tab. Nothing here runs on a push.
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Which part of the version number to raise. auto reads it from the commits."
+        type: choice
+        options: [auto, patch, minor, major]
+        default: auto
+      dry_run:
+        description: "Only report what would be released. Nothing is committed, tagged or published."
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# Two releases at once would race for the same tag, so let one finish first.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    env:
+      # `--bump` on its own lets git-cliff pick the part to raise from the commit
+      # types. With a choice other than auto it is forced instead.
+      BUMP_ARG: ${{ inputs.bump == 'auto' && '--bump' || format('--bump {0}', inputs.bump) }}
+    steps:
+      # workflow_dispatch offers every branch, and a release built from anything
+      # other than master would tag the wrong commits.
+      - name: Refuse to release from a branch other than master
+        if: github.ref != 'refs/heads/master'
+        run: |
+          echo "::error::Releases are cut from master only, but this run is on ${{ github.ref }}."
+          exit 1
+
+      - name: Checkout module
+        uses: actions/checkout@v4
+        with:
+          # git-cliff reads the whole history and every tag to work out the next
+          # version and to list the commits since the last release.
+          fetch-depth: 0
+          fetch-tags: true
+          # A personal access token is only needed when master is protected, so the
+          # bot may push the changelog commit and the tag. Otherwise the run's own
+          # token is enough.
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+
+      - name: Write the changelog with the next version in it
+        id: changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          version: v2.14.1
+          config: cliff.toml
+          args: ${{ env.BUMP_ARG }}
+        env:
+          OUTPUT: CHANGELOG.md
+
+      # git-cliff reports the version it just wrote. When there is nothing worth
+      # releasing it hands back the tag that already exists, which is the signal
+      # to stop before anything is committed.
+      - name: Check there is something to release
+        id: version
+        env:
+          NEXT_VERSION: ${{ steps.changelog.outputs.version }}
+        run: |
+          version="${NEXT_VERSION#v}"
+          tag="v${version}"
+
+          if ! printf '%s' "${version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+'; then
+            echo "::error::git-cliff returned '${NEXT_VERSION}', which is not a version number."
+            exit 1
+          fi
+
+          latest="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+          if [ -n "${latest}" ] && [ "${latest#v}" = "${version}" ]; then
+            echo "::error::Nothing to release. No commit since ${latest} raises the version."
+            exit 1
+          fi
+
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${tag} (previous tag: ${latest:-none})"
+
+      # Only the new release's entries, without the changelog header, for the
+      # GitHub release body. `--latest` is the wrong flag here: it means the tag
+      # that already exists, not the one about to be created.
+      - name: Write the release notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          version: v2.14.1
+          config: cliff.toml
+          args: ${{ env.BUMP_ARG }} --unreleased --strip all
+        env:
+          # Kept out of the checkout so it can never end up in the commit.
+          OUTPUT: ${{ runner.temp }}/release-notes.md
+
+      - name: Report what a real run would do
+        if: ${{ inputs.dry_run }}
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          {
+            echo "## Dry run — nothing was released"
+            echo
+            echo "Next version: \`${TAG}\`"
+            echo
+            echo "### Release notes"
+            echo
+            cat "${RUNNER_TEMP}/release-notes.md"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the changelog and tag the release
+        if: ${{ !inputs.dry_run }}
+        env:
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add CHANGELOG.md
+          git commit -m "chore(release): release ${TAG}"
+          git tag -a "${TAG}" -m "${TAG}"
+          # --follow-tags sends the commit and the annotated tag in one push, so
+          # the tag can never end up on the remote without its changelog commit.
+          git push --follow-tags origin HEAD:master
+
+      - name: Publish the GitHub release
+        if: ${{ !inputs.dry_run }}
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: >-
+          gh release create "${TAG}" --title "${TAG}"
+          --notes-file "${RUNNER_TEMP}/release-notes.md"

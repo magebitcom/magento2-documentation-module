@@ -409,6 +409,37 @@ folder resolved but held no `.md` files, or your role lacks the section's ACL re
 
 **An image is broken.** It must sit inside the section folder and end in an allowed extension.
 
+## Releasing
+
+Releases are cut by hand. Open the **Actions** tab, pick the **Release** workflow and run it on
+`master` — it refuses to run on any other branch.
+
+The version number comes from the commit messages since the last tag, which are
+[conventional commits](https://www.conventionalcommits.org/):
+
+| Commits since the last tag | Next version |
+|---|---|
+| A breaking change (`feat!:`, or a `BREAKING CHANGE:` footer) | major, `1.2.3` → `2.0.0` |
+| A `feat:` | minor, `1.2.3` → `1.3.0` |
+| Anything else that is listed, such as `fix:`, `perf:`, `refactor:`, `docs:` | patch, `1.2.3` → `1.2.4` |
+| Only housekeeping (`ci`, `chore`, `build`, `test`, `style`) | nothing — the run stops and says so |
+
+Two inputs:
+
+- **bump** — `auto` uses the table above. Pick `patch`, `minor` or `major` to force it instead.
+- **dry_run** — works out the version and the notes, prints both in the run summary and stops. Nothing
+  is committed, tagged or published.
+
+A real run then regenerates [CHANGELOG.md](CHANGELOG.md) with [git-cliff](https://git-cliff.org/),
+commits it as `chore(release): release vX.Y.Z`, tags that commit `vX.Y.Z`, pushes both, and publishes
+a GitHub release whose notes are the new section of the changelog.
+
+The push is made by `github-actions[bot]`, so if `master` is protected the bot needs a way through:
+either add a `RELEASE_TOKEN` secret holding a personal access token with **contents: write**, or let
+the branch rule bypass GitHub Actions. Without a protected branch neither is needed.
+
+Entry formatting lives in [cliff.toml](cliff.toml).
+
 ## License
 
 MIT. See [LICENSE](LICENSE).

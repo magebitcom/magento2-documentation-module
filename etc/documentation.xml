@@ -10,5 +10,6 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magebit_Documentation:etc/documentation.xsd">
     <module name="Magebit_Documentation" title="Documentation" sortOrder="9000" icon="Magebit_Documentation::images/icon.svg">
         <documentation name="How to use" path="Docs" sortOrder="10"/>
+        <changelog path="CHANGELOG.md"/>
     </module>
 </config>
