@@ -391,64 +391,6 @@ and `Model\Config\Source\ShippedFiles`.
 <img width="2541" height="1226" alt="Screenshot2" src="https://github.com/user-attachments/assets/f31faa58-368a-4591-b0c5-fc86292f7a6c" />
 <img width="2541" height="1226" alt="Screenshot3" src="https://github.com/user-attachments/assets/7e0d369d-aaf3-48cb-ab20-9198e339478d" />
 
-
-## Troubleshooting
-
-**Nothing changed after editing `documentation.xml`.** You cleaned the wrong cache. That file is
-merged into the **config** cache: `bin/magento cache:clean config`.
-
-**A section does not appear.** Run `bin/magento magebit:documentation:validate`. If it passes, the
-folder resolved but held no `.md` files, or your role lacks the section's ACL resource.
-
-**Pages are stale after adding a file.** `bin/magento cache:clean magebit_documentation`.
-
-**The sidebar icon does not load.** Unlike page images, it is a static view asset:
-`bin/magento setup:static-content:deploy`.
-
-**A front-matter `order` is ignored.** It was quoted. Write `order: 20`, not `order: "20"`.
-
-**An image is broken.** It must sit inside the section folder and end in an allowed extension.
-
-## Releasing
-
-Releases are cut by hand. Open the **Actions** tab, pick the **Release** workflow and run it on
-`master` — it refuses to run on any other branch.
-
-The version number comes from the commit messages since the last tag, which are
-[conventional commits](https://www.conventionalcommits.org/):
-
-| Commits since the last tag | Next version |
-|---|---|
-| A breaking change (`feat!:`, or a `BREAKING CHANGE:` footer) | major, `1.2.3` → `2.0.0` |
-| A `feat:` | minor, `1.2.3` → `1.3.0` |
-| Anything else that is listed, such as `fix:`, `perf:`, `refactor:`, `docs:` | patch, `1.2.3` → `1.2.4` |
-| Only housekeeping (`ci`, `chore`, `build`, `test`, `style`) | nothing — the run stops and says so |
-
-Two inputs:
-
-- **bump** — `auto` uses the table above. Pick `patch`, `minor` or `major` to force it instead.
-- **dry_run** — works out the version and the notes, prints both in the run summary and stops. Nothing
-  is committed, tagged or published.
-
-A real run then regenerates [CHANGELOG.md](CHANGELOG.md) with [git-cliff](https://git-cliff.org/),
-commits it as `chore(release): release vX.Y.Z`, tags that commit `vX.Y.Z`, pushes both, and publishes
-a GitHub release whose notes are the new section of the changelog.
-
-If `master` only accepts changes through pull requests, the workflow needs a way past that rule for
-its one changelog commit. Give it a deploy key:
-
-1. Create a key pair: `ssh-keygen -t ed25519 -N "" -f release-key -C "release workflow"`.
-2. Add `release-key.pub` under **Settings → Deploy keys** with **Allow write access** ticked.
-3. Add the private key (`release-key`) as a repository secret named `RELEASE_DEPLOY_KEY`, then delete
-   both files locally.
-4. In **Settings → Rules**, make sure **Deploy keys** is listed as a bypass actor for the rule set that
-   protects `master`.
-
-The push then goes over SSH as that deploy key. Without a protected branch the secret can stay unset
-and the run's own token is used.
-
-Entry formatting lives in [cliff.toml](cliff.toml).
-
 ## License
 
 MIT. See [LICENSE](LICENSE).
