@@ -29,27 +29,37 @@ class CalloutExtensionTest extends TestCase
         $this->assertStringNotContainsString('<blockquote>', $html);
     }
 
-    /**
-     * @return array<string,array{string,string,string}>
-     */
-    public function typeProvider(): array
+    public function testKnowsEveryGithubCalloutTypeTip(): void
     {
-        return [
-            'tip' => ['TIP', '_tip', 'Tip'],
-            'important' => ['IMPORTANT', '_important', 'Important'],
-            'warning' => ['WARNING', '_warning', 'Warning'],
-            'caution' => ['CAUTION', '_caution', 'Caution'],
-            'lower case marker' => ['warning', '_warning', 'Warning'],
-        ];
+        $this->assertKnowsEveryGithubCalloutType('TIP', '_tip', 'Tip');
+    }
+
+    public function testKnowsEveryGithubCalloutTypeImportant(): void
+    {
+        $this->assertKnowsEveryGithubCalloutType('IMPORTANT', '_important', 'Important');
+    }
+
+    public function testKnowsEveryGithubCalloutTypeWarning(): void
+    {
+        $this->assertKnowsEveryGithubCalloutType('WARNING', '_warning', 'Warning');
+    }
+
+    public function testKnowsEveryGithubCalloutTypeCaution(): void
+    {
+        $this->assertKnowsEveryGithubCalloutType('CAUTION', '_caution', 'Caution');
+    }
+
+    public function testKnowsEveryGithubCalloutTypeLowerCaseMarker(): void
+    {
+        $this->assertKnowsEveryGithubCalloutType('warning', '_warning', 'Warning');
     }
 
     /**
-     * @dataProvider typeProvider
      * @param string $marker
      * @param string $class
      * @param string $title
      */
-    public function testKnowsEveryGithubCalloutType(string $marker, string $class, string $title): void
+    private function assertKnowsEveryGithubCalloutType(string $marker, string $class, string $title): void
     {
         $html = $this->convert("> [!$marker]\n> Body");
 

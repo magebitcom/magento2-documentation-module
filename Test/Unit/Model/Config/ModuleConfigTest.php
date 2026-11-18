@@ -64,36 +64,55 @@ class ModuleConfigTest extends TestCase
         $this->assertSame('default', $this->config->getHighlightTheme());
     }
 
+    public function testHighlightThemeFallsBackToGithubNeverSaved(): void
+    {
+        $this->assertHighlightThemeFallsBackToGithub(null);
+    }
+
+    public function testHighlightThemeFallsBackToGithubEmptyString(): void
+    {
+        $this->assertHighlightThemeFallsBackToGithub('');
+    }
+
+    public function testHighlightThemeFallsBackToGithubOnlySpaces(): void
+    {
+        $this->assertHighlightThemeFallsBackToGithub('   ');
+    }
+
+    public function testHighlightThemeFallsBackToGithubThemeNoLongerShips(): void
+    {
+        $this->assertHighlightThemeFallsBackToGithub('monokai');
+    }
+
+    public function testHighlightThemeFallsBackToGithubDarkVariantIsNotALightTheme(): void
+    {
+        $this->assertHighlightThemeFallsBackToGithub('github-dark');
+    }
+
     /**
-     * @dataProvider unusableThemeProvider
      * @param mixed $stored
      */
-    public function testHighlightThemeFallsBackToGithub(mixed $stored): void
+    private function assertHighlightThemeFallsBackToGithub(mixed $stored): void
     {
         $this->scopeConfig->method('getValue')->willReturn($stored);
 
         $this->assertSame('github', $this->config->getHighlightTheme());
     }
 
-    /**
-     * @return array<string, array{mixed}>
-     */
-    public static function unusableThemeProvider(): array
+    public function testSearchEnabledFollowsTheStoredFlagEnabled(): void
     {
-        return [
-            'never saved' => [null],
-            'empty string' => [''],
-            'only spaces' => ['   '],
-            'theme no longer ships' => ['monokai'],
-            'dark variant is not a light theme' => ['github-dark'],
-        ];
+        $this->assertSearchEnabledFollowsTheStoredFlag(true);
+    }
+
+    public function testSearchEnabledFollowsTheStoredFlagDisabled(): void
+    {
+        $this->assertSearchEnabledFollowsTheStoredFlag(false);
     }
 
     /**
-     * @dataProvider searchFlagProvider
      * @param bool $stored
      */
-    public function testSearchEnabledFollowsTheStoredFlag(bool $stored): void
+    private function assertSearchEnabledFollowsTheStoredFlag(bool $stored): void
     {
         $this->scopeConfig->expects($this->once())
             ->method('isSetFlag')
@@ -101,17 +120,6 @@ class ModuleConfigTest extends TestCase
             ->willReturn($stored);
 
         $this->assertSame($stored, $this->config->isSearchEnabled());
-    }
-
-    /**
-     * @return array<string, array{bool}>
-     */
-    public static function searchFlagProvider(): array
-    {
-        return [
-            'enabled' => [true],
-            'disabled' => [false],
-        ];
     }
 
     public function testExtraLanguagesSplitsTheStoredList(): void
@@ -149,26 +157,28 @@ class ModuleConfigTest extends TestCase
         $this->assertSame([], $config->getExtraLanguages());
     }
 
+    public function testExtraLanguagesIsEmptyWhenNothingIsSelectedNeverSaved(): void
+    {
+        $this->assertExtraLanguagesIsEmptyWhenNothingIsSelected(null);
+    }
+
+    public function testExtraLanguagesIsEmptyWhenNothingIsSelectedEmptyString(): void
+    {
+        $this->assertExtraLanguagesIsEmptyWhenNothingIsSelected('');
+    }
+
+    public function testExtraLanguagesIsEmptyWhenNothingIsSelectedOnlySeparators(): void
+    {
+        $this->assertExtraLanguagesIsEmptyWhenNothingIsSelected(' , , ');
+    }
+
     /**
-     * @dataProvider emptyLanguagesProvider
      * @param mixed $stored
      */
-    public function testExtraLanguagesIsEmptyWhenNothingIsSelected(mixed $stored): void
+    private function assertExtraLanguagesIsEmptyWhenNothingIsSelected(mixed $stored): void
     {
         $this->scopeConfig->method('getValue')->willReturn($stored);
 
         $this->assertSame([], $this->config->getExtraLanguages());
-    }
-
-    /**
-     * @return array<string, array{mixed}>
-     */
-    public static function emptyLanguagesProvider(): array
-    {
-        return [
-            'never saved' => [null],
-            'empty string' => [''],
-            'only separators' => [' , , '],
-        ];
     }
 }

@@ -76,12 +76,21 @@ class IndexTest extends TestCase
         $this->assertSame([], $rendered['headers']);
     }
 
+    public function testReturns404ForAPathThatNamesNoFileEmptyPath(): void
+    {
+        $this->assertReturns404ForAPathThatNamesNoFile('');
+    }
+
+    public function testReturns404ForAPathThatNamesNoFileDirectoryOnly(): void
+    {
+        $this->assertReturns404ForAPathThatNamesNoFile('images/');
+    }
+
     /**
      * @param string $path
      * @return void
-     * @dataProvider unusablePathProvider
      */
-    public function testReturns404ForAPathThatNamesNoFile(string $path): void
+    private function assertReturns404ForAPathThatNamesNoFile(string $path): void
     {
         $tree = $this->createMock(DocumentationTreeInterface::class);
         $tree->expects($this->never())->method('getSection');
@@ -95,23 +104,25 @@ class IndexTest extends TestCase
         $this->assertSame([], $rendered['headers']);
     }
 
-    /**
-     * @return array<string, array{string}>
-     */
-    public function unusablePathProvider(): array
+    public function testReturns404WhenAModuleOrSectionIsMissingNoModule(): void
     {
-        return [
-            'empty path' => [''],
-            'directory only' => ['images/'],
-        ];
+        $this->assertReturns404WhenAModuleOrSectionIsMissing(
+            ['module' => '', 'section' => 'Guide', 'path' => 'diagram.png']
+        );
+    }
+
+    public function testReturns404WhenAModuleOrSectionIsMissingNoSection(): void
+    {
+        $this->assertReturns404WhenAModuleOrSectionIsMissing(
+            ['module' => 'Vendor_A', 'section' => '', 'path' => 'diagram.png']
+        );
     }
 
     /**
      * @param array<string, string> $params
      * @return void
-     * @dataProvider missingCoordinateProvider
      */
-    public function testReturns404WhenAModuleOrSectionIsMissing(array $params): void
+    private function assertReturns404WhenAModuleOrSectionIsMissing(array $params): void
     {
         $tree = $this->createMock(DocumentationTreeInterface::class);
         $tree->expects($this->never())->method('getSection');
@@ -119,17 +130,6 @@ class IndexTest extends TestCase
         $rendered = $this->render($this->controller(tree: $tree, params: $params)->execute());
 
         $this->assertSame(404, $rendered['code']);
-    }
-
-    /**
-     * @return array<string, array{array<string, string>}>
-     */
-    public function missingCoordinateProvider(): array
-    {
-        return [
-            'no module' => [['module' => '', 'section' => 'Guide', 'path' => 'diagram.png']],
-            'no section' => [['module' => 'Vendor_A', 'section' => '', 'path' => 'diagram.png']],
-        ];
     }
 
     public function testReturns404WhenTheFileCannotBeRead(): void
@@ -191,13 +191,47 @@ class IndexTest extends TestCase
         $this->assertSame('image/png', $rendered['headers']['Content-Type'] ?? null);
     }
 
+    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFilePng(): void
+    {
+        $this->assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile('diagram.png', 'image/png');
+    }
+
+    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFileJpg(): void
+    {
+        $this->assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile('diagram.jpg', 'image/jpeg');
+    }
+
+    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFileJpeg(): void
+    {
+        $this->assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile('diagram.jpeg', 'image/jpeg');
+    }
+
+    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFileGif(): void
+    {
+        $this->assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile('diagram.gif', 'image/gif');
+    }
+
+    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFileWebp(): void
+    {
+        $this->assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile('diagram.webp', 'image/webp');
+    }
+
+    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFileSvg(): void
+    {
+        $this->assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile('diagram.svg', 'image/svg+xml');
+    }
+
+    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFileUpperCaseExtension(): void
+    {
+        $this->assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile('diagram.PNG', 'image/png');
+    }
+
     /**
      * @param string $path
      * @param string $expected
      * @return void
-     * @dataProvider mimeTypeProvider
      */
-    public function testSendsTheMappedMimeTypeNotOneDerivedFromTheFile(string $path, string $expected): void
+    private function assertSendsTheMappedMimeTypeNotOneDerivedFromTheFile(string $path, string $expected): void
     {
         $rendered = $this->render(
             $this->controller(params: ['module' => 'Vendor_A', 'section' => 'Guide', 'path' => $path])->execute()
@@ -208,22 +242,6 @@ class IndexTest extends TestCase
         $this->assertSame('inline', $rendered['headers']['Content-Disposition'] ?? null);
         $this->assertSame('nosniff', $rendered['headers']['X-Content-Type-Options'] ?? null);
         $this->assertSame(self::BYTES, $rendered['body']);
-    }
-
-    /**
-     * @return array<string, array{string, string}>
-     */
-    public function mimeTypeProvider(): array
-    {
-        return [
-            'png' => ['diagram.png', 'image/png'],
-            'jpg' => ['diagram.jpg', 'image/jpeg'],
-            'jpeg' => ['diagram.jpeg', 'image/jpeg'],
-            'gif' => ['diagram.gif', 'image/gif'],
-            'webp' => ['diagram.webp', 'image/webp'],
-            'svg' => ['diagram.svg', 'image/svg+xml'],
-            'upper case extension' => ['diagram.PNG', 'image/png'],
-        ];
     }
 
     public function testLocksDownSvgResponsesWithAContentSecurityPolicy(): void

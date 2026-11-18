@@ -33,30 +33,36 @@ class CurrentPageTest extends TestCase
         );
     }
 
+    public function testFallsBackToTheFirstPageTheAdminMaySeeNothingAskedFor(): void
+    {
+        $this->assertFallsBackToTheFirstPageTheAdminMaySee([]);
+    }
+
+    public function testFallsBackToTheFirstPageTheAdminMaySeeNoModule(): void
+    {
+        $this->assertFallsBackToTheFirstPageTheAdminMaySee(['section' => 'Manual', 'path' => 'setup/install.md']);
+    }
+
+    public function testFallsBackToTheFirstPageTheAdminMaySeeNoSection(): void
+    {
+        $this->assertFallsBackToTheFirstPageTheAdminMaySee(['module' => 'Vendor_B', 'path' => 'setup/install.md']);
+    }
+
+    public function testFallsBackToTheFirstPageTheAdminMaySeeNoPath(): void
+    {
+        $this->assertFallsBackToTheFirstPageTheAdminMaySee(['module' => 'Vendor_B', 'section' => 'Manual']);
+    }
+
     /**
      * @param array<string, string> $params
      * @return void
-     * @dataProvider incompleteParamsProvider
      */
-    public function testFallsBackToTheFirstPageTheAdminMaySee(array $params): void
+    private function assertFallsBackToTheFirstPageTheAdminMaySee(array $params): void
     {
         $this->assertSame(
             ['module' => 'Vendor_A', 'section' => 'Guide', 'path' => 'intro.md'],
             $this->currentPage($params)->get()
         );
-    }
-
-    /**
-     * @return array<string, array{array<string, string>}>
-     */
-    public function incompleteParamsProvider(): array
-    {
-        return [
-            'nothing asked for' => [[]],
-            'no module' => [['section' => 'Manual', 'path' => 'setup/install.md']],
-            'no section' => [['module' => 'Vendor_B', 'path' => 'setup/install.md']],
-            'no path' => [['module' => 'Vendor_B', 'section' => 'Manual']],
-        ];
     }
 
     public function testKnowsNothingWhenTheAdminMaySeeNoDocumentation(): void
